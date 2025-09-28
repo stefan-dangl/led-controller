@@ -2,7 +2,7 @@ mod frontend;
 mod network;
 mod types;
 
-use crate::frontend::index_html;
+use crate::frontend::HTML;
 use crate::network::connect_to_wifi;
 use crate::types::Color;
 use esp_idf_hal::delay::Delay;
@@ -75,9 +75,8 @@ fn main() {
             "/",
             Method::Get,
             |request| -> core::result::Result<(), EspIOError> {
-                let html = index_html();
                 let mut response = request.into_ok_response()?;
-                response.write_all(html.as_bytes())?;
+                response.write_all(HTML.as_bytes())?;
                 Ok(())
             },
         )
