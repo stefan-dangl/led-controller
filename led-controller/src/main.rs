@@ -3,6 +3,7 @@ use esp_idf_hal::i2c::{self, I2cDriver};
 use esp_idf_hal::io::{EspIOError, Write};
 use esp_idf_hal::peripheral;
 use esp_idf_hal::peripherals::Peripherals;
+use esp_idf_hal::sys::esp_random;
 use esp_idf_hal::units::KiloHertz;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::http::client::EspHttpConnection;
@@ -10,12 +11,20 @@ use esp_idf_svc::http::server::EspHttpServer;
 use esp_idf_svc::http::Method;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::wifi::{AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi};
+use serde::Deserialize;
+use smart_leds::hsv::{hsv2rgb, Hsv};
+use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 
 // #[toml_cfg::toml_config]
 // pub struct Config {
 //     SSID: &'static str,
 //     PASSWORD: &'static str,
 // }
+
+#[derive(Debug, Deserialize)]
+struct ColorRequest {
+    color: String,
+}
 
 fn wifi(
     ssid: &str,
@@ -127,13 +136,37 @@ fn main() {
     // let app_config = CONFIG;
     // log::info!("app-config: {app_config:?}");
 
-    log::info!("Init i2c ...");
-    let i2c = I2cDriver::new(
-        peripherals.i2c0,
-        peripherals.pins.gpio0,
-        peripherals.pins.gpio1,
-        &i2c::config::Config::new().baudrate(KiloHertz::from(400).into()),
-    );
+    log::info!("init neopixel");
+    let led_pin = peripherals.pins.gpio2;
+    let channel = peripherals.rmt.channel0;
+    let mut ws2812 = Ws2812Esp32Rmt::new(channel, led_pin).unwrap();
+
+    log::info!("Start NeoPixel rainbow!");
+
+    let delay = Delay::default();
+
+    let mut hue = unsafe { esp_random() } as u8;
+    loop {
+        let pixels = std::iter::repeat(hsv2rgb(Hsv {
+            hue,
+            sat: 255,
+            val: 8,
+        }))
+        .take(25);
+        ws2812.write_nocopy(pixels).unwrap();
+
+        delay.delay_ms(100);
+
+        hue = hue.wrapping_add(10);
+    }
+
+    // log::info!("Init i2c ...");
+    // let i2c = I2cDriver::new(
+    //     peripherals.i2c0,
+    //     peripherals.pins.gpio0,
+    //     peripherals.pins.gpio1,
+    //     &i2c::config::Config::new().baudrate(KiloHertz::from(400).into()),
+    // );
 
     // Access Pixel Matrix
 
@@ -166,9 +199,25 @@ fn main() {
         )
         .unwrap();
 
+    server
+        .fn_handler(
+            "/set_color",
+            Method::Post,
+            |mut request| -> core::result::Result<(), EspIOError> {
+                let mut buf = [0; 100]; // TODO_SD: Check buffer overflow
+                let bytes_read = request.read(&mut buf).unwrap();
+                let body = str::from_utf8(&buf[..bytes_read]).unwrap();
+                let color_req: ColorRequest = serde_json::from_str(body).unwrap();
+
+                log::info!("New Color: {}", color_req.color);
+
+                Ok(())
+            },
+        )
+        .unwrap();
+
     log::info!("Server awaiting request!");
 
-    let delay = Delay::default();
     loop {
         delay.delay_ms(100);
     }
