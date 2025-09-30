@@ -1,10 +1,12 @@
 mod frontend;
 mod network;
 mod types;
+mod wifi_connection;
 
-use crate::frontend::HTML;
+use crate::frontend::FRONTEND;
 use crate::network::connect_to_wifi;
 use crate::types::Color;
+use crate::wifi_connection::CONNECTION_PAGE;
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::io::{EspIOError, Write};
 use esp_idf_hal::peripherals::Peripherals;
@@ -80,7 +82,19 @@ fn main() {
             Method::Get,
             |request| -> core::result::Result<(), EspIOError> {
                 let mut response = request.into_ok_response()?;
-                response.write_all(HTML.as_bytes())?;
+                response.write_all(FRONTEND.as_bytes())?;
+                Ok(())
+            },
+        )
+        .unwrap();
+
+    server
+        .fn_handler(
+            "/connection_page",
+            Method::Get,
+            |request| -> core::result::Result<(), EspIOError> {
+                let mut response = request.into_ok_response()?;
+                response.write_all(CONNECTION_PAGE.as_bytes())?;
                 Ok(())
             },
         )
