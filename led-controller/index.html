@@ -146,6 +146,53 @@
             transform: translateY(-2px);
         }
 
+        /* New styles for the rainbow and off buttons */
+        .effect-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .effect-btn {
+            flex: 1;
+            height: 42px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: white;
+        }
+
+        .rainbow-btn {
+            background: #333;
+        }
+
+        .rainbow-btn i {
+            background: linear-gradient(90deg, #ff0000, #ff9900, #ffff00, #00ff00, #00ffff, #0000ff, #9900ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .rainbow-btn:hover {
+            background: #555;
+            transform: translateY(-2px);
+        }
+
+        .off-btn {
+            background: #333;
+        }
+
+        .off-btn:hover {
+            background: #555;
+            transform: translateY(-2px);
+        }
+
         .status-indicator {
             display: inline-block;
             width: 10px;
@@ -186,13 +233,23 @@
                 <i class="fas fa-microchip"></i> MCU Device
                 <span class="status-indicator status-connected"></span>
             </div>
-            
+
             <div class="color-section">
                 <span class="color-label">Set Color</span>
                 <div class="color-input-group">
                     <input type="color" class="color-input" value="#ffffff">
                     <button class="set-color-btn">
                         <i class="fas fa-paint-brush"></i> Set Color
+                    </button>
+                </div>
+
+                <!-- New effect buttons section -->
+                <div class="effect-buttons">
+                    <button class="effect-btn rainbow-btn" id="rainbowBtn">
+                        <i class="fas fa-rainbow"></i> Rainbow
+                    </button>
+                    <button class="effect-btn off-btn" id="offBtn">
+                        <i class="fas fa-power-off"></i> Off
                     </button>
                 </div>
             </div>
@@ -207,6 +264,8 @@
         // Get the set color button and color input
         const setColorBtn = document.querySelector(".set-color-btn");
         const colorInput = document.querySelector("input[type='color']");
+        const rainbowBtn = document.getElementById("rainbowBtn");
+        const offBtn = document.getElementById("offBtn");
 
         // Set the API endpoint
         const apiAddress = `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
@@ -232,6 +291,57 @@
             }).catch(err => {
                 console.error("Network error:", err);
                 alert("Failed to set color");
+            });
+        });
+
+        // Add event listener for the rainbow button
+        rainbowBtn.addEventListener("click", () => {
+            fetch(`${apiAddress}/rainbow`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(response => {
+                if (!response.ok) {
+                    alert("Failed to activate rainbow effect");
+                } else {
+                    console.log("Rainbow effect activated");
+                    // Add a subtle animation to confirm activation
+                    rainbowBtn.style.transform = "scale(0.95)";
+                    setTimeout(() => {
+                        rainbowBtn.style.transform = "";
+                    }, 150);
+                }
+            }).catch(err => {
+                console.error("Network error:", err);
+                alert("Failed to activate rainbow effect");
+            });
+        });
+
+        // Add event listener for the off button
+        offBtn.addEventListener("click", () => {
+            fetch(`${apiAddress}/set_color`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    color: "000000"
+                })
+            }).then(response => {
+                if (!response.ok) {
+                    alert("Failed to turn off");
+                } else {
+                    console.log("Device turned off");
+                    // Add a subtle animation to confirm activation
+                    offBtn.style.transform = "scale(0.95)";
+                    setTimeout(() => {
+                        offBtn.style.transform = "";
+                    }, 150);
+                }
+            }).catch(err => {
+                console.error("Network error:", err);
+                alert("Failed to turn off");
             });
         });
     </script>

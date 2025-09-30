@@ -15,3 +15,10 @@ cargo build --release
 ``` Bash
 espflash flash target/xtensa-esp32s3-espidf/debug/led-controller --monitor
 ```
+
+
+
+
+### TODO
+
+- Improve power efficiency, especially important when operating with battery
