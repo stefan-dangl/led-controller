@@ -1,4 +1,4 @@
-pub const HTML: &str = r##"
+pub const FRONTEND: &str = r##"
 <!DOCTYPE html>
 <html lang="en">
 
