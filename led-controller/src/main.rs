@@ -8,11 +8,14 @@ use crate::types::Color;
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::io::{EspIOError, Write};
 use esp_idf_hal::peripherals::Peripherals;
+use esp_idf_hal::sys::esp_random;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::http::client::EspHttpConnection;
 use esp_idf_svc::http::server::EspHttpServer;
 use esp_idf_svc::http::Method;
 use serde::Deserialize;
+use smart_leds::hsv::{hsv2rgb, Hsv};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 
@@ -41,6 +44,7 @@ fn main() {
     let peripherals = Peripherals::take().expect("Failed to take peripherals");
 
     let current_color = Arc::new(Mutex::new(Color::default()));
+    let is_rainbow_mode = Arc::new(AtomicBool::default());
 
     // let app_config = CONFIG;
     // log::info!("app-config: {app_config:?}");
@@ -83,6 +87,7 @@ fn main() {
         .unwrap();
 
     let current_color_clone = current_color.clone();
+    let is_rainbow_mode_clone = is_rainbow_mode.clone();
     server
         .fn_handler(
             "/set_color",
@@ -95,6 +100,7 @@ fn main() {
 
                 log::info!("New Color: {}", color_req.color);
 
+                is_rainbow_mode_clone.store(false, Ordering::SeqCst);
                 *current_color_clone.lock().unwrap() = Color::from(color_req.color);
 
                 Ok(())
@@ -102,11 +108,40 @@ fn main() {
         )
         .unwrap();
 
+    let is_rainbow_mode_clone = is_rainbow_mode.clone();
+    server
+        .fn_handler(
+            "/rainbow",
+            Method::Post,
+            move |_| -> core::result::Result<(), EspIOError> {
+                log::info!("Activate Rainbow Mode");
+                is_rainbow_mode_clone.store(true, Ordering::SeqCst);
+                Ok(())
+            },
+        )
+        .unwrap();
+
     log::info!("Server awaiting request!");
 
+    let mut hue = unsafe { esp_random() } as u8;
+
     loop {
-        delay.delay_ms(100);
+        while is_rainbow_mode.load(Ordering::SeqCst) {
+            let pixels = std::iter::repeat(hsv2rgb(Hsv {
+                hue,
+                sat: 255,
+                val: 8,
+            }))
+            .take(25);
+            ws2812.write_nocopy(pixels).unwrap();
+
+            delay.delay_ms(100);
+
+            hue = hue.wrapping_add(10);
+        }
         let pixels = std::iter::repeat(current_color.lock().unwrap().0).take(25);
         ws2812.write_nocopy(pixels).unwrap();
+
+        delay.delay_ms(100);
     }
 }

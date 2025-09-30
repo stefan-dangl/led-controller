@@ -1,4 +1,4 @@
-pub const HTML: &str = r#####"
+pub const HTML: &str = r##"
 <!DOCTYPE html>
 <html lang="en">
 
@@ -238,4 +238,4 @@ pub const HTML: &str = r#####"
 </body>
 
 </html>
-"#####;
+"##;
