@@ -1,12 +1,10 @@
 mod frontend;
 mod network;
 mod types;
-mod wifi_connection;
 
-use crate::frontend::FRONTEND;
+use crate::frontend::{color_panel, index, wifi_connection::connection_page};
 use crate::network::connect_to_wifi;
 use crate::types::Color;
-use crate::wifi_connection::connection_page;
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::io::{EspIOError, Write};
 use esp_idf_hal::peripherals::Peripherals;
@@ -76,14 +74,27 @@ fn main() {
     let mut server =
         EspHttpServer::new(&esp_idf_svc::http::server::Configuration::default()).unwrap();
 
-    // http://<sta ip>/ handler
     server
         .fn_handler(
             "/",
             Method::Get,
             |request| -> core::result::Result<(), EspIOError> {
+                // TODO_SD: Already connected -> color_panel
+
                 let mut response = request.into_ok_response()?;
-                response.write_all(FRONTEND.as_bytes())?;
+                response.write_all(index::HTML.as_bytes())?;
+                Ok(())
+            },
+        )
+        .unwrap();
+
+    server
+        .fn_handler(
+            "/color_panel",
+            Method::Get,
+            |request| -> core::result::Result<(), EspIOError> {
+                let mut response = request.into_ok_response()?;
+                response.write_all(color_panel::HTML.as_bytes())?;
                 Ok(())
             },
         )
@@ -107,7 +118,7 @@ fn main() {
                     }
                 };
 
-                log::info!("{ap_infos:?}");
+                // log::info!("{ap_infos:?}");
 
                 let mut response = request.into_ok_response()?;
                 response.write_all(connection_page(&ap_infos).as_bytes())?;

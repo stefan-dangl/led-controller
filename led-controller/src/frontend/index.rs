@@ -1,3 +1,4 @@
+pub const HTML: &str = r##"
 <!DOCTYPE html>
 <html lang="en">
 
@@ -275,7 +276,7 @@
 
     <script>
         // Use an IIFE to prevent variable redeclaration issues
-        (function () {
+        (function() {
             // Get the buttons and popup elements
             let wifiBtn = document.getElementById("wifiBtn");
             let continueBtn = document.getElementById("continueBtn");
@@ -355,3 +356,4 @@
 </body>
 
 </html>
+"##;
