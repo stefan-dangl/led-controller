@@ -7,7 +7,7 @@ use crate::types::Color;
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::io::{EspIOError, Write};
 use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_hal::sys::esp_random;
+use esp_idf_hal::sys::{esp_random, EspError};
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::http::client::EspHttpConnection;
 use esp_idf_svc::http::server::EspHttpServer;
@@ -64,7 +64,7 @@ fn main() {
 
     let delay = Delay::default();
 
-    // log::info!("Trying to connect to wifi \"{ssid}\" ...");
+    log::info!("Trying to connect to wifi \"{ssid}\" ...");
     log::info!("system event loop!");
 
     let system_event_loop = EspSystemEventLoop::take().unwrap();
@@ -72,9 +72,9 @@ fn main() {
 
     log::info!("Start AP!");
 
-    let mut wifi = network::WiFiManager::new(peripherals.modem, system_event_loop.clone())
+    let mut wifi = network::WiFiManager::new(peripherals.modem, system_event_loop)
         .expect("Failed to create wifi struct");
-    wifi.start_ap_only("!!! MY SUPER COOL AP", system_event_loop)
+    wifi.start_ap_only("!!! MY SUPER COOL AP")
         .expect("Failed to start AP");
 
     let mut server =
@@ -140,6 +140,7 @@ fn main() {
             "/connect_to_wifi",
             Method::Post,
             move |mut request| -> core::result::Result<(), EspIOError> {
+                log::info!("!!! Connect to WIFI called");
                 let mut buf = [0; 100]; // TODO_SD: Check buffer overflow, check format
                 let bytes_read = request.read(&mut buf).unwrap();
                 let body = str::from_utf8(&buf[..bytes_read]).unwrap();
@@ -151,9 +152,19 @@ fn main() {
                     connection_req.password
                 );
 
-                // TODO_SD: Connect to Wifi
-
-                Ok(())
+                match wifi_clone.connect_to_wifi(&connection_req.ssid, &connection_req.password) {
+                    Ok(sta_ip) => {
+                        log::info!("Sucessfully connected to WiFi. IP-Address: {sta_ip:?}");
+                        let response = request.into_ok_response()?;
+                        Ok(())
+                    }
+                    Err(err) => {
+                        let error_message = format!("Failed to connect to WiFi: {err}");
+                        log::error!("{error_message}");
+                        let response = request.into_response(500, Some(&error_message), &[]); // TODO_SD: Used?
+                        Ok(()) // TODO_SD: Return well fitting error
+                    }
+                }
             },
         )
         .unwrap();
@@ -165,6 +176,8 @@ fn main() {
             "/set_color",
             Method::Post,
             move |mut request| -> core::result::Result<(), EspIOError> {
+                log::info!("!!! Set color called");
+
                 let mut buf = [0; 100]; // TODO_SD: Check buffer overflow, check format
                 let bytes_read = request.read(&mut buf).unwrap();
                 let body = str::from_utf8(&buf[..bytes_read]).unwrap();
