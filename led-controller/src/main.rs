@@ -3,7 +3,6 @@ mod network;
 mod types;
 
 use crate::frontend::{color_panel, index, wifi_connection::connection_page};
-use crate::network::connect_to_wifi;
 use crate::types::Color;
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::io::{EspIOError, Write};
@@ -29,6 +28,12 @@ use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 #[derive(Debug, Deserialize)]
 struct ColorRequest {
     color: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ConnectionRequest {
+    ssid: String,
+    password: String,
 }
 
 fn main() {
@@ -59,17 +64,18 @@ fn main() {
 
     let delay = Delay::default();
 
-    log::info!("Trying to connect to wifi \"{ssid}\" ...");
+    // log::info!("Trying to connect to wifi \"{ssid}\" ...");
     log::info!("system event loop!");
 
     let system_event_loop = EspSystemEventLoop::take().unwrap();
     // let nvs = EspDefaultNvsPartition::take().unwrap();
 
-    log::info!("esp wifi new!");
+    log::info!("Start AP!");
 
-    let wifi = connect_to_wifi(&ssid, &password, peripherals.modem, system_event_loop).unwrap();
-
-    // get("https://espressif.com/").unwrap();
+    let mut wifi = network::WiFiManager::new(peripherals.modem, system_event_loop.clone())
+        .expect("Failed to create wifi struct");
+    wifi.start_ap_only("!!! MY SUPER COOL AP", system_event_loop)
+        .expect("Failed to start AP");
 
     let mut server =
         EspHttpServer::new(&esp_idf_svc::http::server::Configuration::default()).unwrap();
@@ -80,6 +86,7 @@ fn main() {
             Method::Get,
             |request| -> core::result::Result<(), EspIOError> {
                 // TODO_SD: Already connected -> color_panel
+                log::info!("Index endpoint called");
 
                 let mut response = request.into_ok_response()?;
                 response.write_all(index::HTML.as_bytes())?;
@@ -108,7 +115,7 @@ fn main() {
             move |request| -> core::result::Result<(), EspIOError> {
                 log::info!("Scan networks ...");
 
-                let ap_infos = match wifi_clone.lock().unwrap().scan() {
+                let ap_infos = match wifi_clone.scan() {
                     Ok(ap_infos) => ap_infos,
                     Err(err) => {
                         let error_message = format!("Failed to scan networks: {err}");
@@ -122,6 +129,30 @@ fn main() {
 
                 let mut response = request.into_ok_response()?;
                 response.write_all(connection_page(&ap_infos).as_bytes())?;
+                Ok(())
+            },
+        )
+        .unwrap();
+
+    let wifi_clone = wifi.clone();
+    server
+        .fn_handler(
+            "/connect_to_wifi",
+            Method::Post,
+            move |mut request| -> core::result::Result<(), EspIOError> {
+                let mut buf = [0; 100]; // TODO_SD: Check buffer overflow, check format
+                let bytes_read = request.read(&mut buf).unwrap();
+                let body = str::from_utf8(&buf[..bytes_read]).unwrap();
+                let connection_req: ConnectionRequest = serde_json::from_str(body).unwrap();
+
+                log::info!(
+                    "Wants to connect to: {} with password {}",
+                    connection_req.ssid,
+                    connection_req.password
+                );
+
+                // TODO_SD: Connect to Wifi
+
                 Ok(())
             },
         )

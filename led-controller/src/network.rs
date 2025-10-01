@@ -1,79 +1,113 @@
 use std::sync::{Arc, Mutex};
 
-use esp_idf_hal::peripheral;
+use esp_idf_hal::{peripheral, sys::EspError};
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
-    wifi::{AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi},
+    wifi::{
+        AccessPointConfiguration, AccessPointInfo, AuthMethod, BlockingWifi, ClientConfiguration,
+        Configuration, EspWifi,
+    },
 };
 
-pub fn connect_to_wifi(
-    ssid: &str,
-    pass: &str,
-    modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
-    sysloop: EspSystemEventLoop,
-) -> anyhow::Result<Arc<Mutex<EspWifi<'static>>>> {
-    let mut auth_method = AuthMethod::WPA2Personal;
-    if ssid.is_empty() {
-        anyhow::bail!("Missing WiFi name")
+#[derive(Clone)]
+pub struct WiFiManager {
+    wifi: Arc<Mutex<EspWifi<'static>>>,
+}
+
+impl WiFiManager {
+    pub fn new(
+        modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
+        sysloop: EspSystemEventLoop,
+    ) -> anyhow::Result<Self> {
+        let esp_wifi = EspWifi::new(modem, sysloop.clone(), None)?;
+
+        Ok(Self {
+            wifi: Arc::new(Mutex::new(esp_wifi)),
+        })
     }
-    if pass.is_empty() {
-        auth_method = AuthMethod::None;
-        log::info!("Wifi password is empty");
+
+    pub fn start_ap_only(
+        &mut self,
+        ap_ssid: &str,
+        sysloop: EspSystemEventLoop,
+    ) -> anyhow::Result<()> {
+        let mut esp_wifi = self.wifi.lock().unwrap();
+        // TODO_SD: Deadlock?
+        let mut wifi = BlockingWifi::wrap(&mut *esp_wifi, sysloop)?;
+
+        let ap_config = AccessPointConfiguration {
+            ssid: ap_ssid.try_into().unwrap(),
+            password: "".try_into().unwrap(),
+            channel: 1,
+            auth_method: AuthMethod::None,
+            ..Default::default()
+        };
+
+        wifi.set_configuration(&Configuration::AccessPoint(ap_config))?;
+        wifi.start()?;
+        wifi.wait_netif_up()?;
+
+        let ap_ip = wifi.wifi().ap_netif().get_ip_info()?;
+        log::info!("AP started: {} - IP: {}", ap_ssid, ap_ip.ip);
+
+        Ok(())
     }
-    let mut esp_wifi = EspWifi::new(modem, sysloop.clone(), None)?;
 
-    let mut wifi = BlockingWifi::wrap(&mut esp_wifi, sysloop)?;
+    pub fn scan(&self) -> Result<Vec<AccessPointInfo>, EspError> {
+        log::info!("!!! Scan network");
+        self.wifi.lock().unwrap().scan()
+    }
 
-    wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
+    // pub fn connect_to_wifi(
+    //     &mut self,
+    //     sta_ssid: &str,
+    //     sta_pass: &str,
+    // ) -> anyhow::Result<Option<IpInfo>> {
+    //     let wifi = self.blocking_wifi.as_mut().unwrap();
 
-    log::info!("Starting wifi...");
+    //     // Get current AP configuration to maintain it
+    //     let current_config = wifi.get_configuration()?;
+    //     let ap_config = match current_config {
+    //         Configuration::AccessPoint(ap) => ap,
+    //         Configuration::Mixed(ap, _) => ap,
+    //         _ => anyhow::bail!("AP not configured"),
+    //     };
 
-    wifi.start()?;
+    //     // Switch to mixed mode
+    //     let mixed_config = Configuration::Mixed(
+    //         ap_config,
+    //         ClientConfiguration {
+    //             ssid: sta_ssid.try_into()?,
+    //             password: sta_pass.try_into()?,
+    //             ..Default::default()
+    //         },
+    //     );
 
-    log::info!("Scanning...");
+    //     wifi.set_configuration(&mixed_config)?;
 
-    let ap_infos = wifi.scan()?;
+    //     log::info!("Connecting to WiFi: {}", sta_ssid);
+    //     wifi.connect()?;
 
-    let ours = ap_infos.into_iter().find(|a| a.ssid == ssid);
+    //     if wifi.is_connected()? {
+    //         wifi.wait_netif_up()?;
+    //         let sta_ip = wifi.wifi().sta_netif().get_ip_info()?;
+    //         log::info!("Connected to WiFi! STA IP: {}", sta_ip.ip);
+    //         Ok(Some(sta_ip))
+    //     } else {
+    //         log::warn!("Failed to connect to WiFi");
+    //         Ok(None)
+    //     }
+    // }
 
-    let channel = if let Some(ours) = ours {
-        log::info!(
-            "Found configured access point {} on channel {}",
-            ssid,
-            ours.channel
-        );
-        Some(ours.channel)
-    } else {
-        log::info!(
-            "Configured access point {} not found during scanning, will go with unknown channel",
-            ssid
-        );
-        None
-    };
+    // pub fn get_connection_status(&self) -> anyhow::Result<(Option<IpInfo>, Option<IpInfo>)> {
+    //     let wifi = self.wifi.lock().unwrap();
+    //     let ap_ip = wifi.ap_netif().get_ip_info().ok();
+    //     let sta_ip = wifi.sta_netif().get_ip_info().ok();
+    //     Ok((ap_ip, sta_ip))
+    // }
 
-    wifi.set_configuration(&Configuration::Client(ClientConfiguration {
-        ssid: ssid
-            .try_into()
-            .expect("Could not parse the given SSID into WiFi config"),
-        password: pass
-            .try_into()
-            .expect("Could not parse the given password into WiFi config"),
-        channel,
-        auth_method,
-        ..Default::default()
-    }))?;
-
-    log::info!("Connecting wifi...");
-
-    wifi.connect()?;
-
-    log::info!("Waiting for DHCP lease...");
-
-    wifi.wait_netif_up()?;
-
-    let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
-
-    log::info!("Wifi DHCP info: {:?}", ip_info);
-
-    Ok(Arc::new(Mutex::new(esp_wifi)))
+    // pub fn is_sta_connected(&self) -> anyhow::Result<bool> {
+    //     let wifi = self.wifi.lock().unwrap();
+    //     Ok(wifi.is_connected()?)
+    // }
 }
