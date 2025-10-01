@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use esp_idf_hal::peripheral;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -9,7 +11,7 @@ pub fn connect_to_wifi(
     pass: &str,
     modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
     sysloop: EspSystemEventLoop,
-) -> anyhow::Result<Box<EspWifi<'static>>> {
+) -> anyhow::Result<Arc<Mutex<EspWifi<'static>>>> {
     let mut auth_method = AuthMethod::WPA2Personal;
     if ssid.is_empty() {
         anyhow::bail!("Missing WiFi name")
@@ -73,5 +75,5 @@ pub fn connect_to_wifi(
 
     log::info!("Wifi DHCP info: {:?}", ip_info);
 
-    Ok(Box::new(esp_wifi))
+    Ok(Arc::new(Mutex::new(esp_wifi)))
 }

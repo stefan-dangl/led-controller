@@ -6,7 +6,7 @@ mod wifi_connection;
 use crate::frontend::FRONTEND;
 use crate::network::connect_to_wifi;
 use crate::types::Color;
-use crate::wifi_connection::CONNECTION_PAGE;
+use crate::wifi_connection::connection_page;
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::io::{EspIOError, Write};
 use esp_idf_hal::peripherals::Peripherals;
@@ -15,6 +15,7 @@ use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::http::client::EspHttpConnection;
 use esp_idf_svc::http::server::EspHttpServer;
 use esp_idf_svc::http::Method;
+use esp_idf_svc::wifi::NonBlocking;
 use serde::Deserialize;
 use smart_leds::hsv::{hsv2rgb, Hsv};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -68,7 +69,7 @@ fn main() {
 
     log::info!("esp wifi new!");
 
-    let wifi = connect_to_wifi(&ssid, &password, peripherals.modem, system_event_loop);
+    let wifi = connect_to_wifi(&ssid, &password, peripherals.modem, system_event_loop).unwrap();
 
     // get("https://espressif.com/").unwrap();
 
@@ -88,13 +89,28 @@ fn main() {
         )
         .unwrap();
 
+    let wifi_clone = wifi.clone();
     server
         .fn_handler(
             "/connection_page",
             Method::Get,
-            |request| -> core::result::Result<(), EspIOError> {
+            move |request| -> core::result::Result<(), EspIOError> {
+                log::info!("Scan networks ...");
+
+                let ap_infos = match wifi_clone.lock().unwrap().scan() {
+                    Ok(ap_infos) => ap_infos,
+                    Err(err) => {
+                        let error_message = format!("Failed to scan networks: {err}");
+                        log::error!("{error_message}");
+                        let response = request.into_response(500, Some(&error_message), &[]); // TODO_SD: Used?
+                        return Err(err.into());
+                    }
+                };
+
+                log::info!("{ap_infos:?}");
+
                 let mut response = request.into_ok_response()?;
-                response.write_all(CONNECTION_PAGE.as_bytes())?;
+                response.write_all(connection_page(&ap_infos).as_bytes())?;
                 Ok(())
             },
         )

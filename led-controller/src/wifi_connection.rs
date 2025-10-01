@@ -1,4 +1,8 @@
-pub const CONNECTION_PAGE: &str = r##"
+use esp_idf_svc::wifi::AccessPointInfo;
+
+// TODO_SD: May reuse css part from frontend
+
+const PART_1: &str = r##"
 <!DOCTYPE html>
 <html lang="en">
 
@@ -253,52 +257,9 @@ pub const CONNECTION_PAGE: &str = r##"
             </div>
 
             <div class="wifi-list">
-                <!-- Hardcoded WiFi SSIDs -->
-                <div class="wifi-item" data-ssid="HomeNetwork" data-protected="true">
-                    <span>HomeNetwork</span>
-                    <div class="signal-strength">
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar"></div>
-                    </div>
-                </div>
-                <div class="wifi-item" data-ssid="GuestWiFi" data-protected="false">
-                    <span>GuestWiFi</span>
-                    <div class="signal-strength">
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar"></div>
-                        <div class="signal-bar"></div>
-                    </div>
-                </div>
-                <div class="wifi-item" data-ssid="Office_Network" data-protected="true">
-                    <span>Office_Network</span>
-                    <div class="signal-strength">
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar active"></div>
-                    </div>
-                </div>
-                <div class="wifi-item" data-ssid="FreePublicWiFi" data-protected="false">
-                    <span>FreePublicWiFi</span>
-                    <div class="signal-strength">
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar"></div>
-                        <div class="signal-bar"></div>
-                        <div class="signal-bar"></div>
-                    </div>
-                </div>
-                <div class="wifi-item" data-ssid="CafeSpot" data-protected="true">
-                    <span>CafeSpot</span>
-                    <div class="signal-strength">
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar active"></div>
-                        <div class="signal-bar"></div>
-                        <div class="signal-bar"></div>
-                    </div>
-                </div>
+"##;
+
+const PART_2: &str = r##"
             </div>
 
             <div class="password-section" id="passwordSection">
@@ -438,3 +399,103 @@ pub const CONNECTION_PAGE: &str = r##"
 
 </html>
 "##;
+
+const NUMBER_OF_BARS: i8 = 4;
+const LOWEST_ACCEPTABLE_CONNECTION_QUALITY: i8 = -100;
+const ACTIVE_BAR: &str = r##"
+<div class="signal-bar active"></div>
+"##;
+const INACTIVE_BAR: &str = r##"
+<div class="signal-bar"></div>
+"##;
+
+fn signal_strength(signal_strength: i8) -> String {
+    let inactive_bars = signal_strength / (LOWEST_ACCEPTABLE_CONNECTION_QUALITY / NUMBER_OF_BARS); // -100 -> 4, -75 -> 3, -50 -> 2
+    let active_bars = NUMBER_OF_BARS - inactive_bars;
+
+    let mut output = "".to_owned();
+
+    for _ in 0..active_bars {
+        output = format!("{output}{ACTIVE_BAR}")
+    }
+    for _ in active_bars..NUMBER_OF_BARS {
+        output = format!("{output}{INACTIVE_BAR}")
+    }
+
+    output
+}
+
+fn wifi_item(ap_info: &AccessPointInfo) -> String {
+    let signal_strength = signal_strength(ap_info.signal_strength);
+    let ssid = ap_info.ssid.clone();
+    let is_protected = !ap_info.auth_method.is_none();
+
+    format!(
+        r##"
+    <div class="wifi-item" data-ssid="{ssid}" data-protected="{is_protected}">
+        <span>{ssid}</span>
+        <div class="signal-strength">
+{signal_strength}
+        </div>
+    </div>
+    "##
+    )
+}
+
+pub fn connection_page(ap_infos: &[AccessPointInfo]) -> String {
+    let mut page = PART_1.to_owned();
+
+    for ap_info in ap_infos {
+        let wifi_item = &wifi_item(ap_info);
+        page = format!("{page}{wifi_item}");
+    }
+
+    format!("{page}{PART_2}")
+}
+
+//     <div class="wifi-item" data-ssid="HomeNetwork" data-protected="true">
+//         <span>HomeNetwork</span>
+//         <div class="signal-strength">
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar"></div>
+//         </div>
+//     </div>
+
+//     <div class="wifi-item" data-ssid="GuestWiFi" data-protected="false">
+//         <span>GuestWiFi</span>
+//         <div class="signal-strength">
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar"></div>
+//             <div class="signal-bar"></div>
+//         </div>
+//     </div>
+//     <div class="wifi-item" data-ssid="Office_Network" data-protected="true">
+//         <span>Office_Network</span>
+//         <div class="signal-strength">
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar active"></div>
+//         </div>
+//     </div>
+//     <div class="wifi-item" data-ssid="FreePublicWiFi" data-protected="false">
+//         <span>FreePublicWiFi</span>
+//         <div class="signal-strength">
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar"></div>
+//             <div class="signal-bar"></div>
+//             <div class="signal-bar"></div>
+//         </div>
+//     </div>
+//     <div class="wifi-item" data-ssid="CafeSpot" data-protected="true">
+//         <span>CafeSpot</span>
+//         <div class="signal-strength">
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar active"></div>
+//             <div class="signal-bar"></div>
+//             <div class="signal-bar"></div>
+//         </div>
+//     </div>
