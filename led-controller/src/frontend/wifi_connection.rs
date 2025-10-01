@@ -2,7 +2,7 @@ use esp_idf_svc::wifi::AccessPointInfo;
 
 // TODO_SD: May reuse css part from frontend
 
-const PART_1: &str = r##"
+const HTML_1: &str = r##"
 <!DOCTYPE html>
 <html lang="en">
 
@@ -235,6 +235,36 @@ const PART_1: &str = r##"
             font-size: 0.9rem;
         }
 
+        /* Back button styles - matching the rainbow button width */
+        .back-btn-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px auto;
+            max-width: 500px;
+        }
+
+        .back-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: calc(50% - 5px);
+            /* Same width as rainbow button */
+        }
+
+        .back-btn:hover {
+            background: #5b7aff;
+            transform: translateY(-2px);
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
@@ -259,7 +289,7 @@ const PART_1: &str = r##"
             <div class="wifi-list">
 "##;
 
-const PART_2: &str = r##"
+const HTML_2: &str = r##"
             </div>
 
             <div class="password-section" id="passwordSection">
@@ -272,6 +302,13 @@ const PART_2: &str = r##"
 
             <div class="status-message" id="statusMessage"></div>
         </div>
+
+        <!-- Back button positioned between wifi card and footer -->
+        <div class="back-btn-container">
+            <button class="back-btn" id="backBtn">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+        </div>
     </div>
 
     <footer>
@@ -279,121 +316,147 @@ const PART_2: &str = r##"
     </footer>
 
     <script>
-        // Get DOM elements
-        const wifiItems = document.querySelectorAll('.wifi-item');
-        const passwordSection = document.getElementById('passwordSection');
-        const selectedSsid = document.getElementById('selectedSsid');
-        const passwordInput = document.getElementById('passwordInput');
-        const connectBtn = document.getElementById('connectBtn');
-        const statusMessage = document.getElementById('statusMessage');
+        (function () {
+            // Get DOM elements
+            let wifiItems = document.querySelectorAll('.wifi-item');
+            let passwordSection = document.getElementById('passwordSection');
+            let selectedSsid = document.getElementById('selectedSsid');
+            let passwordInput = document.getElementById('passwordInput');
+            let connectBtn = document.getElementById('connectBtn');
+            let statusMessage = document.getElementById('statusMessage');
+            let backBtn = document.getElementById('backBtn');
 
-        // Track selected WiFi
-        let selectedWifi = null;
+            // Track selected WiFi
+            let selectedWifi = null;
 
-        // Add click event listeners to WiFi items
-        wifiItems.forEach(item => {
-            item.addEventListener('click', () => {
-                // Remove selected class from all items
-                wifiItems.forEach(i => i.classList.remove('selected'));
-                
-                // Add selected class to clicked item
-                item.classList.add('selected');
-                
-                // Store selected WiFi data
-                selectedWifi = {
-                    ssid: item.dataset.ssid,
-                    protected: item.dataset.protected === 'true'
-                };
-                
-                // Update UI based on whether WiFi is protected
+            // Add click event listeners to WiFi items
+            wifiItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    // Remove selected class from all items
+                    wifiItems.forEach(i => i.classList.remove('selected'));
+
+                    // Add selected class to clicked item
+                    item.classList.add('selected');
+
+                    // Store selected WiFi data
+                    selectedWifi = {
+                        ssid: item.dataset.ssid,
+                        protected: item.dataset.protected === 'true'
+                    };
+
+                    // Update UI based on whether WiFi is protected
+                    if (selectedWifi.protected) {
+                        selectedSsid.textContent = selectedWifi.ssid;
+                        passwordSection.classList.add('active');
+                        passwordInput.value = '';
+                        passwordInput.focus();
+                        statusMessage.className = 'status-message';
+                    } else {
+                        passwordSection.classList.remove('active');
+                        // Immediately connect to unprotected WiFi
+                        connectToWifi(selectedWifi.ssid);
+                    }
+                });
+            });
+
+            // Add click event listener to connect button
+            connectBtn.addEventListener('click', () => {
+                if (!selectedWifi) {
+                    showStatus('Please select a WiFi network first', 'error');
+                    return;
+                }
+
                 if (selectedWifi.protected) {
-                    selectedSsid.textContent = selectedWifi.ssid;
-                    passwordSection.classList.add('active');
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                    statusMessage.className = 'status-message';
+                    let password = passwordInput.value.trim();
+                    if (!password) {
+                        showStatus('Please enter a password', 'error');
+                        return;
+                    }
+                    connectToWifi(selectedWifi.ssid, password);
                 } else {
-                    passwordSection.classList.remove('active');
-                    // Immediately connect to unprotected WiFi
                     connectToWifi(selectedWifi.ssid);
                 }
             });
-        });
 
-        // Add click event listener to connect button
-        connectBtn.addEventListener('click', () => {
-            if (!selectedWifi) {
-                showStatus('Please select a WiFi network first', 'error');
-                return;
-            }
-            
-            if (selectedWifi.protected) {
-                const password = passwordInput.value.trim();
-                if (!password) {
-                    showStatus('Please enter a password', 'error');
-                    return;
+            // Allow pressing Enter to connect
+            passwordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    connectBtn.click();
                 }
-                connectToWifi(selectedWifi.ssid, password);
-            } else {
-                connectToWifi(selectedWifi.ssid);
-            }
-        });
-
-        // Allow pressing Enter to connect
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                connectBtn.click();
-            }
-        });
-
-        // Function to connect to WiFi
-        function connectToWifi(ssid, password = null) {
-            // Prepare request data
-            const requestData = { ssid };
-            if (password) {
-                requestData.password = password;
-            }
-            
-            // Show connecting status with blue color
-            showStatus('Connecting to ' + ssid + '...', 'connecting');
-            
-            // Send POST request
-            fetch('/connect_to_wifi', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Handle successful connection
-                showStatus('Successfully connected to ' + ssid, 'success');
-                // Reset selection after successful connection
-                setTimeout(() => {
-                    wifiItems.forEach(i => i.classList.remove('selected'));
-                    passwordSection.classList.remove('active');
-                    selectedWifi = null;
-                    statusMessage.className = 'status-message';
-                }, 3000);
-            })
-            .catch(error => {
-                // Handle connection failure
-                console.error('Error connecting to WiFi:', error);
-                showStatus('Failed to connect to ' + ssid, 'error');
             });
-        }
 
-        // Function to show status message
-        function showStatus(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = 'status-message ' + type;
-        }
+            // Function to connect to WiFi
+            function connectToWifi(ssid, password = null) {
+                // Prepare request data
+                let requestData = { ssid };
+                if (password) {
+                    requestData.password = password;
+                }
+
+                // Show connecting status with blue color
+                showStatus('Connecting to ' + ssid + '...', 'connecting');
+
+                // Send POST request
+                fetch('/connect_to_wifi', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Handle successful connection
+                        showStatus('Successfully connected to ' + ssid, 'success');
+                        // Reset selection after successful connection
+                        setTimeout(() => {
+                            wifiItems.forEach(i => i.classList.remove('selected'));
+                            passwordSection.classList.remove('active');
+                            selectedWifi = null;
+                            statusMessage.className = 'status-message';
+                        }, 3000);
+                    })
+                    .catch(error => {
+                        // Handle connection failure
+                        console.error('Error connecting to WiFi:', error);
+                        showStatus('Failed to connect to ' + ssid, 'error');
+                    });
+            }
+
+            // Function to show status message
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = 'status-message ' + type;
+            }
+
+            // Add event listener for the back button
+            backBtn.addEventListener('click', () => {
+                fetch("/", {
+                    method: "GET"
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error("Failed to fetch new content");
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        // Replace the entire document with the new HTML
+                        document.open();
+                        document.write(html);
+                        document.close();
+                    })
+                    .catch(err => {
+                        console.error("Network error:", err);
+                        alert("Failed to go back");
+                    });
+            });
+        })();
     </script>
 </body>
 
@@ -409,6 +472,7 @@ const INACTIVE_BAR: &str = r##"
 <div class="signal-bar"></div>
 "##;
 
+// TODO_SD: Add tests
 fn signal_strength(signal_strength: i8) -> String {
     let inactive_bars = signal_strength / (LOWEST_ACCEPTABLE_CONNECTION_QUALITY / NUMBER_OF_BARS); // -100 -> 4, -75 -> 3, -50 -> 2
     let active_bars = NUMBER_OF_BARS - inactive_bars;
@@ -443,14 +507,14 @@ fn wifi_item(ap_info: &AccessPointInfo) -> String {
 }
 
 pub fn connection_page(ap_infos: &[AccessPointInfo]) -> String {
-    let mut page = PART_1.to_owned();
+    let mut page = HTML_1.to_owned();
 
     for ap_info in ap_infos {
         let wifi_item = &wifi_item(ap_info);
         page = format!("{page}{wifi_item}");
     }
 
-    format!("{page}{PART_2}")
+    format!("{page}{HTML_2}")
 }
 
 //     <div class="wifi-item" data-ssid="HomeNetwork" data-protected="true">
