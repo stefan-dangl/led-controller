@@ -6,7 +6,6 @@ pub const HTML: &str = r##"
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Device Setup</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary: #4a6cf7;
@@ -233,26 +232,22 @@ pub const HTML: &str = r##"
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-palette"></i> Device Setup</h1>
+            <h1>Device Setup</h1>
             <p class="subtitle">Configure your device settings</p>
         </header>
 
         <div class="landing-card">
-            <div class="landing-icon">
-                <i class="fas fa-cogs"></i>
-            </div>
-
             <p class="landing-description">
                 Welcome to your device setup. Please choose an option below to continue.
             </p>
 
             <div class="button-group">
                 <button class="landing-btn wifi-btn" id="wifiBtn">
-                    <i class="fas fa-wifi"></i> Connect to WiFi
+                    Connect to WiFi
                 </button>
 
                 <button class="landing-btn" id="continueBtn">
-                    <i class="fas fa-arrow-right"></i> Continue
+                    Continue
                 </button>
             </div>
         </div>
@@ -261,9 +256,6 @@ pub const HTML: &str = r##"
     <!-- Error Popup -->
     <div class="popup-overlay" id="errorPopup">
         <div class="popup error-popup">
-            <div class="popup-icon">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
             <h3 class="popup-title">Connection Error</h3>
             <p class="popup-message">Failed to connect to WiFi. Please try again.</p>
             <button class="popup-btn" id="closePopup">OK</button>
@@ -276,7 +268,7 @@ pub const HTML: &str = r##"
 
     <script>
         // Use an IIFE to prevent variable redeclaration issues
-        (function() {
+        (function () {
             // Get the buttons and popup elements
             let wifiBtn = document.getElementById("wifiBtn");
             let continueBtn = document.getElementById("continueBtn");
@@ -289,7 +281,7 @@ pub const HTML: &str = r##"
             // Add event listener for the WiFi button
             wifiBtn.addEventListener("click", () => {
                 // Change button text and disable it
-                wifiBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching for networks...';
+                wifiBtn.innerHTML = 'Searching for networks...';
                 wifiBtn.disabled = true;
 
                 fetch('/connection_page')

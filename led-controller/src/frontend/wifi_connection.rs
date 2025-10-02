@@ -10,7 +10,6 @@ const HTML_1: &str = r##"
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WiFi Connection</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary: #4a6cf7;
@@ -276,13 +275,13 @@ const HTML_1: &str = r##"
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-wifi"></i> WiFi Connection</h1>
+            <h1>WiFi Connection</h1>
             <p class="subtitle">Connect to a wireless network</p>
         </header>
 
         <div class="wifi-card">
             <div class="wifi-name">
-                <i class="fas fa-network-wired"></i> Available Networks
+                Available Networks
                 <span class="status-indicator status-connected"></span>
             </div>
 
@@ -296,7 +295,7 @@ const HTML_2: &str = r##"
                 <span class="password-label">Enter Password for <span id="selectedSsid"></span></span>
                 <input type="password" class="password-input" id="passwordInput" placeholder="Password">
                 <button class="connect-btn" id="connectBtn">
-                    <i class="fas fa-plug"></i> Connect
+                    Connect
                 </button>
             </div>
 
@@ -306,7 +305,7 @@ const HTML_2: &str = r##"
         <!-- Back button positioned between wifi card and footer -->
         <div class="back-btn-container">
             <button class="back-btn" id="backBtn">
-                <i class="fas fa-arrow-left"></i> Back
+                Back
             </button>
         </div>
     </div>

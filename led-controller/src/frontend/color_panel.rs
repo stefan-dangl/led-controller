@@ -6,7 +6,6 @@ pub const HTML: &str = r##"
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Device Color Control</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary: #4a6cf7;
@@ -255,13 +254,13 @@ pub const HTML: &str = r##"
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-palette"></i> Color Control Panel</h1>
+            <h1>Color Control Panel</h1>
             <p class="subtitle">Control your LED color</p>
         </header>
 
         <div id="device" class="device-card">
             <div class="device-name">
-                <i class="fas fa-microchip"></i> MCU Device
+                MCU Device
                 <span class="status-indicator status-connected"></span>
             </div>
 
@@ -270,17 +269,17 @@ pub const HTML: &str = r##"
                 <div class="color-input-group">
                     <input type="color" class="color-input" value="#ffffff">
                     <button class="set-color-btn">
-                        <i class="fas fa-paint-brush"></i> Set Color
+                        Set Color
                     </button>
                 </div>
 
                 <!-- New effect buttons section -->
                 <div class="effect-buttons">
                     <button class="effect-btn rainbow-btn" id="rainbowBtn">
-                        <i class="fas fa-rainbow"></i> Rainbow
+                        Rainbow
                     </button>
                     <button class="effect-btn off-btn" id="offBtn">
-                        <i class="fas fa-power-off"></i> Off
+                        Off
                     </button>
                 </div>
             </div>
@@ -289,7 +288,7 @@ pub const HTML: &str = r##"
         <!-- Back button positioned between device card and footer -->
         <div class="back-btn-container">
             <button class="back-btn" id="backBtn">
-                <i class="fas fa-arrow-left"></i> Back
+                Back
             </button>
         </div>
     </div>
@@ -299,7 +298,7 @@ pub const HTML: &str = r##"
     </footer>
 
     <script>
-        (function() {
+        (function () {
             // Get the set color button and color input
             let setColorBtn = document.querySelector(".set-color-btn");
             let colorInput = document.querySelector("input[type='color']");
@@ -390,22 +389,22 @@ pub const HTML: &str = r##"
                 fetch("/", {
                     method: "GET"
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("Failed to fetch new content");
-                    }
-                    return response.text();
-                })
-                .then(html => {
-                    // Replace the entire document with the new HTML
-                    document.open();
-                    document.write(html);
-                    document.close();
-                })
-                .catch(err => {
-                    console.error("Network error:", err);
-                    alert("Failed to go back");
-                });
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error("Failed to fetch new content");
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        // Replace the entire document with the new HTML
+                        document.open();
+                        document.write(html);
+                        document.close();
+                    })
+                    .catch(err => {
+                        console.error("Network error:", err);
+                        alert("Failed to go back");
+                    });
             });
         })();
     </script>
