@@ -3,8 +3,8 @@ pub const HTML: &str = r##"
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Device Color Control</title>
     <style>
         :root {
@@ -146,7 +146,6 @@ pub const HTML: &str = r##"
             transform: translateY(-2px);
         }
 
-        /* New styles for the rainbow and off buttons */
         .effect-buttons {
             display: flex;
             gap: 10px;
@@ -155,7 +154,6 @@ pub const HTML: &str = r##"
 
         .effect-btn {
             flex: 1;
-            height: 42px;
             border: none;
             border-radius: 8px;
             font-weight: 600;
@@ -164,19 +162,17 @@ pub const HTML: &str = r##"
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
             color: white;
+            height: 80px;
+            width: 60px;
+            padding: 0;
+            font-size: 0.8rem;
+            text-align: center;
+            line-height: 1.2;
         }
 
         .rainbow-btn {
             background: #333;
-        }
-
-        .rainbow-btn i {
-            background: linear-gradient(90deg, #ff0000, #ff9900, #ffff00, #00ff00, #00ffff, #0000ff, #9900ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .rainbow-btn:hover {
@@ -213,7 +209,6 @@ pub const HTML: &str = r##"
             font-size: 0.9rem;
         }
 
-        /* Back button styles - now matching the rainbow button width */
         .back-btn-container {
             display: flex;
             justify-content: center;
@@ -235,7 +230,6 @@ pub const HTML: &str = r##"
             justify-content: center;
             gap: 8px;
             width: calc(50% - 5px);
-            /* Same width as rainbow button */
         }
 
         .back-btn:hover {
@@ -255,25 +249,24 @@ pub const HTML: &str = r##"
     <div class="container">
         <header>
             <h1>Color Control Panel</h1>
-            <p class="subtitle">Control your LED color</p>
+            <p class="subtitle">Please choose a color</p>
         </header>
 
         <div id="device" class="device-card">
             <div class="device-name">
-                MCU Device
+                Device
                 <span class="status-indicator status-connected"></span>
             </div>
 
             <div class="color-section">
                 <span class="color-label">Set Color</span>
                 <div class="color-input-group">
-                    <input type="color" class="color-input" value="#ffffff">
+                    <input type="color" class="color-input" value="#00a0a0">
                     <button class="set-color-btn">
                         Set Color
                     </button>
                 </div>
 
-                <!-- New effect buttons section -->
                 <div class="effect-buttons">
                     <button class="effect-btn rainbow-btn" id="rainbowBtn">
                         Rainbow
@@ -285,7 +278,6 @@ pub const HTML: &str = r##"
             </div>
         </div>
 
-        <!-- Back button positioned between device card and footer -->
         <div class="back-btn-container">
             <button class="back-btn" id="backBtn">
                 Back
@@ -294,22 +286,19 @@ pub const HTML: &str = r##"
     </div>
 
     <footer>
-        <p>Color Control Panel © 2025</p>
+        <p>Stefan Dangl © 2025</p>
     </footer>
 
     <script>
         (function () {
-            // Get the set color button and color input
             let setColorBtn = document.querySelector(".set-color-btn");
             let colorInput = document.querySelector("input[type='color']");
             let rainbowBtn = document.getElementById("rainbowBtn");
             let offBtn = document.getElementById("offBtn");
             let backBtn = document.getElementById("backBtn");
 
-            // Set the API endpoint
             let apiAddress = `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
 
-            // Add event listener for the set color button
             setColorBtn.addEventListener("click", () => {
                 let newColor = colorInput.value.replace("#", "").toLowerCase();
 
@@ -333,7 +322,6 @@ pub const HTML: &str = r##"
                 });
             });
 
-            // Add event listener for the rainbow button
             rainbowBtn.addEventListener("click", () => {
                 fetch(`${apiAddress}/rainbow`, {
                     method: "POST",
@@ -345,7 +333,6 @@ pub const HTML: &str = r##"
                         alert("Failed to activate rainbow effect");
                     } else {
                         console.log("Rainbow effect activated");
-                        // Add a subtle animation to confirm activation
                         rainbowBtn.style.transform = "scale(0.95)";
                         setTimeout(() => {
                             rainbowBtn.style.transform = "";
@@ -357,7 +344,6 @@ pub const HTML: &str = r##"
                 });
             });
 
-            // Add event listener for the off button
             offBtn.addEventListener("click", () => {
                 fetch(`${apiAddress}/set_color`, {
                     method: "POST",
@@ -372,7 +358,6 @@ pub const HTML: &str = r##"
                         alert("Failed to turn off");
                     } else {
                         console.log("Device turned off");
-                        // Add a subtle animation to confirm activation
                         offBtn.style.transform = "scale(0.95)";
                         setTimeout(() => {
                             offBtn.style.transform = "";
@@ -384,7 +369,6 @@ pub const HTML: &str = r##"
                 });
             });
 
-            // Add event listener for the back button
             backBtn.addEventListener("click", () => {
                 fetch("/", {
                     method: "GET"
@@ -396,7 +380,6 @@ pub const HTML: &str = r##"
                         return response.text();
                     })
                     .then(html => {
-                        // Replace the entire document with the new HTML
                         document.open();
                         document.write(html);
                         document.close();

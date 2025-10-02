@@ -5,7 +5,7 @@ pub const HTML: &str = r##"
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Device Setup</title>
+    <title>Color Control Panel</title>
     <style>
         :root {
             --primary: #4a6cf7;
@@ -141,7 +141,6 @@ pub const HTML: &str = r##"
             font-size: 0.9rem;
         }
 
-        /* Popup styles */
         .popup-overlay {
             position: fixed;
             top: 0;
@@ -232,13 +231,13 @@ pub const HTML: &str = r##"
 <body>
     <div class="container">
         <header>
-            <h1>Device Setup</h1>
-            <p class="subtitle">Configure your device settings</p>
+            <h1>Color Control Panel</h1>
+            <p class="subtitle">Welcome</p>
         </header>
 
         <div class="landing-card">
             <p class="landing-description">
-                Welcome to your device setup. Please choose an option below to continue.
+                Choose a color directly or connect to your WiFi first.
             </p>
 
             <div class="button-group">
@@ -247,13 +246,12 @@ pub const HTML: &str = r##"
                 </button>
 
                 <button class="landing-btn" id="continueBtn">
-                    Continue
+                    Choose Color
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Error Popup -->
     <div class="popup-overlay" id="errorPopup">
         <div class="popup error-popup">
             <h3 class="popup-title">Connection Error</h3>
@@ -263,24 +261,19 @@ pub const HTML: &str = r##"
     </div>
 
     <footer>
-        <p>Device Control Panel © 2025</p>
+        <p>Stefan Dangl © 2025</p>
     </footer>
 
     <script>
-        // Use an IIFE to prevent variable redeclaration issues
         (function () {
-            // Get the buttons and popup elements
             let wifiBtn = document.getElementById("wifiBtn");
             let continueBtn = document.getElementById("continueBtn");
             let errorPopup = document.getElementById("errorPopup");
             let closePopup = document.getElementById("closePopup");
 
-            // Store original button text
             let originalWifiText = wifiBtn.innerHTML;
 
-            // Add event listener for the WiFi button
             wifiBtn.addEventListener("click", () => {
-                // Change button text and disable it
                 wifiBtn.innerHTML = 'Searching for networks...';
                 wifiBtn.disabled = true;
 
@@ -292,7 +285,6 @@ pub const HTML: &str = r##"
                         return response.text();
                     })
                     .then(html => {
-                        // Replace the current page with the new HTML
                         document.open();
                         document.write(html);
                         document.close();
@@ -300,10 +292,8 @@ pub const HTML: &str = r##"
                     .catch(err => {
                         console.error("Failed to load WiFi page:", err);
 
-                        // Show error popup
                         errorPopup.classList.add('active');
 
-                        // Reset button after a short delay
                         setTimeout(() => {
                             wifiBtn.innerHTML = originalWifiText;
                             wifiBtn.disabled = false;
@@ -311,7 +301,6 @@ pub const HTML: &str = r##"
                     });
             });
 
-            // Add event listener for the Continue button
             continueBtn.addEventListener("click", () => {
                 fetch('/color_panel')
                     .then(response => {
@@ -321,7 +310,6 @@ pub const HTML: &str = r##"
                         return response.text();
                     })
                     .then(html => {
-                        // Replace the current page with the new HTML
                         document.open();
                         document.write(html);
                         document.close();
@@ -332,12 +320,10 @@ pub const HTML: &str = r##"
                     });
             });
 
-            // Close popup when OK button is clicked
             closePopup.addEventListener("click", () => {
                 errorPopup.classList.remove('active');
             });
 
-            // Close popup when clicking outside of it
             errorPopup.addEventListener("click", (e) => {
                 if (e.target === errorPopup) {
                     errorPopup.classList.remove('active');

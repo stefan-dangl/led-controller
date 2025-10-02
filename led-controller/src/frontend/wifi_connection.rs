@@ -9,7 +9,7 @@ const HTML_1: &str = r##"
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WiFi Connection</title>
+    <title>Color Control Panel</title>
     <style>
         :root {
             --primary: #4a6cf7;
@@ -214,14 +214,6 @@ const HTML_1: &str = r##"
             display: block;
         }
 
-        .status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-left: 10px;
-        }
-
         .status-connected {
             background-color: var(--success);
         }
@@ -234,7 +226,6 @@ const HTML_1: &str = r##"
             font-size: 0.9rem;
         }
 
-        /* Back button styles - matching the rainbow button width */
         .back-btn-container {
             display: flex;
             justify-content: center;
@@ -256,7 +247,6 @@ const HTML_1: &str = r##"
             justify-content: center;
             gap: 8px;
             width: calc(50% - 5px);
-            /* Same width as rainbow button */
         }
 
         .back-btn:hover {
@@ -264,7 +254,6 @@ const HTML_1: &str = r##"
             transform: translateY(-2px);
         }
 
-        /* Success IP message styles */
         .success-ip-message {
             margin-top: 15px;
             padding: 10px;
@@ -301,14 +290,13 @@ const HTML_1: &str = r##"
 <body>
     <div class="container">
         <header>
-            <h1>WiFi Connection</h1>
-            <p class="subtitle">Connect to a wireless network</p>
+            <h1>Color Control Panel</h1>
+            <p class="subtitle">Connect to your WiFi</p>
         </header>
 
         <div class="wifi-card">
             <div class="wifi-name">
                 Available Networks
-                <span class="status-indicator status-connected"></span>
             </div>
 
             <div class="wifi-list">
@@ -327,13 +315,11 @@ const HTML_2: &str = r##"
 
             <div class="status-message" id="statusMessage"></div>
 
-            <!-- Success IP message -->
             <div class="success-ip-message" id="successIpMessage">
-                Please continue at <span class="ip-address" id="ipAddress"></span> after connecting the device in your hands to the selected WiFi as well.
+                Please continue at <span class="ip-address" id="ipAddress"></span>
             </div>
         </div>
 
-        <!-- Back button positioned between wifi card and footer -->
         <div class="back-btn-container">
             <button class="back-btn" id="backBtn">
                 Back
@@ -342,12 +328,11 @@ const HTML_2: &str = r##"
     </div>
 
     <footer>
-        <p>WiFi Connection Panel © 2025</p>
+        <p>Stefan Dangl © 2025</p>
     </footer>
 
     <script>
         (function () {
-            // Get DOM elements
             let wifiItems = document.querySelectorAll('.wifi-item');
             let passwordSection = document.getElementById('passwordSection');
             let selectedSsid = document.getElementById('selectedSsid');
@@ -358,25 +343,19 @@ const HTML_2: &str = r##"
             let ipAddress = document.getElementById('ipAddress');
             let backBtn = document.getElementById('backBtn');
 
-            // Track selected WiFi
             let selectedWifi = null;
 
-            // Add click event listeners to WiFi items
             wifiItems.forEach(item => {
                 item.addEventListener('click', () => {
-                    // Remove selected class from all items
                     wifiItems.forEach(i => i.classList.remove('selected'));
 
-                    // Add selected class to clicked item
                     item.classList.add('selected');
 
-                    // Store selected WiFi data
                     selectedWifi = {
                         ssid: item.dataset.ssid,
                         protected: item.dataset.protected === 'true'
                     };
 
-                    // Update UI based on whether WiFi is protected
                     if (selectedWifi.protected) {
                         selectedSsid.textContent = selectedWifi.ssid;
                         passwordSection.classList.add('active');
@@ -386,13 +365,11 @@ const HTML_2: &str = r##"
                         successIpMessage.classList.remove('active');
                     } else {
                         passwordSection.classList.remove('active');
-                        // Immediately connect to unprotected WiFi
                         connectToWifi(selectedWifi.ssid);
                     }
                 });
             });
 
-            // Add click event listener to connect button
             connectBtn.addEventListener('click', () => {
                 if (!selectedWifi) {
                     showStatus('Please select a WiFi network first', 'error');
@@ -411,25 +388,20 @@ const HTML_2: &str = r##"
                 }
             });
 
-            // Allow pressing Enter to connect
             passwordInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     connectBtn.click();
                 }
             });
 
-            // Function to connect to WiFi
             function connectToWifi(ssid, password = null) {
-                // Prepare request data
                 let requestData = { ssid };
                 if (password) {
                     requestData.password = password;
                 }
 
-                // Show connecting status with blue color
                 showStatus('Connecting to ' + ssid + '...', 'connecting');
 
-                // Send POST request
                 fetch('/connect_to_wifi', {
                     method: 'POST',
                     headers: {
@@ -438,21 +410,24 @@ const HTML_2: &str = r##"
                     body: JSON.stringify(requestData)
                 })
                     .then(response => {
+
+                        console.log("response:");
+                        console.log(response);
+
                         if (!response.ok) {
                             throw new Error('Network response was not ok');
                         }
-                        return response.json();
+                        console.log("response to json");
+                        let response_json = response.json();
+                        return response_json;
                     })
                     .then(data => {
-                        // Handle successful connection
                         showStatus('Successfully connected to ' + ssid, 'success');
 
-                        // Show the success IP message with the new IP address
                         if (data.ip_address) {
                             showSuccessIpMessage(data.ip_address);
                         }
 
-                        // Reset selection after successful connection
                         setTimeout(() => {
                             wifiItems.forEach(i => i.classList.remove('selected'));
                             passwordSection.classList.remove('active');
@@ -461,31 +436,25 @@ const HTML_2: &str = r##"
                         }, 3000);
                     })
                     .catch(error => {
-                        // Handle connection failure
                         console.error('Error connecting to WiFi:', error);
                         showStatus('Failed to connect to ' + ssid, 'error');
                     });
             }
 
-            // Function to show status message
             function showStatus(message, type) {
                 statusMessage.textContent = message;
                 statusMessage.className = 'status-message ' + type;
             }
 
-            // Function to show success IP message
             function showSuccessIpMessage(ip) {
                 ipAddress.textContent = ip;
                 successIpMessage.classList.add('active');
 
-                // Make the IP address clickable
                 ipAddress.onclick = function () {
-                    // Navigate to the IP address
                     window.location.href = 'http://' + ip;
                 };
             }
 
-            // Add event listener for the back button
             backBtn.addEventListener('click', () => {
                 fetch("/", {
                     method: "GET"
@@ -497,7 +466,6 @@ const HTML_2: &str = r##"
                         return response.text();
                     })
                     .then(html => {
-                        // Replace the entire document with the new HTML
                         document.open();
                         document.write(html);
                         document.close();
@@ -567,50 +535,3 @@ pub fn connection_page(ap_infos: &[AccessPointInfo]) -> String {
 
     format!("{page}{HTML_2}")
 }
-
-//     <div class="wifi-item" data-ssid="HomeNetwork" data-protected="true">
-//         <span>HomeNetwork</span>
-//         <div class="signal-strength">
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar"></div>
-//         </div>
-//     </div>
-
-//     <div class="wifi-item" data-ssid="GuestWiFi" data-protected="false">
-//         <span>GuestWiFi</span>
-//         <div class="signal-strength">
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar"></div>
-//             <div class="signal-bar"></div>
-//         </div>
-//     </div>
-//     <div class="wifi-item" data-ssid="Office_Network" data-protected="true">
-//         <span>Office_Network</span>
-//         <div class="signal-strength">
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar active"></div>
-//         </div>
-//     </div>
-//     <div class="wifi-item" data-ssid="FreePublicWiFi" data-protected="false">
-//         <span>FreePublicWiFi</span>
-//         <div class="signal-strength">
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar"></div>
-//             <div class="signal-bar"></div>
-//             <div class="signal-bar"></div>
-//         </div>
-//     </div>
-//     <div class="wifi-item" data-ssid="CafeSpot" data-protected="true">
-//         <span>CafeSpot</span>
-//         <div class="signal-strength">
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar active"></div>
-//             <div class="signal-bar"></div>
-//             <div class="signal-bar"></div>
-//         </div>
-//     </div>
