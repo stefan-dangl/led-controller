@@ -1,9 +1,11 @@
+mod config;
 mod frontend;
 mod http;
 mod led;
 mod network;
 mod types;
 
+use crate::config::{AP_SSID, SLEEP_TIME_MS};
 use crate::http::Server;
 use crate::led::Led;
 use crate::network::WiFiManager;
@@ -35,50 +37,35 @@ fn main() {
     esp_idf_svc::sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
 
-    // Set during combilation, or better, try to configure it via serial interface. nvs meight use it for automatic connecting to wifi:
-    // Starting MCU -> Try connect to Wifi. If failed, wait for Serial Input defining SSID and Password
-    // let ssid = std::env::var("SSID").expect("Please set SSID ENV for Wifi connection");
-    // let password = std::env::var("PASSWORD").expect("Please set PASSWORD ENV for Wifi connection");
-    let ssid = "xxx".to_owned();
-    let password = "xxx".to_owned();
+    log::info!("Init start ...");
+    let peripherals = Peripherals::take().expect("Failed to access peripherals");
+    let system_event_loop = EspSystemEventLoop::take().expect("Failed to access System Event Loop");
 
-    let peripherals = Peripherals::take().expect("Failed to take peripherals");
-
-    log::info!("init neopixel");
+    log::info!("... Init Neopixel driver");
     let led_pin = peripherals.pins.gpio2;
     let channel = peripherals.rmt.channel0;
     let mut led = Led::new(channel, led_pin);
 
-    log::info!("Start NeoPixel rainbow!");
-
-    let delay = Delay::default();
-
-    log::info!("Trying to connect to wifi \"{ssid}\" ...");
-    log::info!("system event loop!");
-
-    let system_event_loop = EspSystemEventLoop::take().unwrap();
-    // let nvs = EspDefaultNvsPartition::take().unwrap();
-
-    log::info!("Start AP!");
+    log::info!("... Start WiFi-AP");
     let wifi = network::WiFiManager::new(peripherals.modem, system_event_loop)
         .expect("Failed to create wifi struct");
-
     let state = State::new(wifi);
     state
         .wifi
-        .start_ap_only("!!! MY SUPER COOL AP")
-        .expect("Failed to start AP");
+        .start_ap_only(AP_SSID)
+        .expect("Failed to start WiFi-AP");
 
-    let server = Server::new(state.clone());
+    log::info!("... Start HTTP Server");
+    let _server = Server::new(state.clone());
 
-    log::info!("Server awaiting request!");
-
+    log::info!("Init done - awaiting requests");
+    let delay = Delay::default();
     loop {
         while state.is_rainbow_mode.load(Ordering::SeqCst) {
             led.rainbow();
-            delay.delay_ms(100);
+            delay.delay_ms(SLEEP_TIME_MS);
         }
         led.set_color(state.current_color.lock().unwrap().clone());
-        delay.delay_ms(100);
+        delay.delay_ms(SLEEP_TIME_MS);
     }
 }
