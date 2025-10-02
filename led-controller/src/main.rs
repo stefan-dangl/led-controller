@@ -1,39 +1,35 @@
 mod frontend;
+mod http;
 mod network;
 mod types;
 
-use crate::frontend::{color_panel, index, wifi_connection::connection_page};
+use crate::http::Server;
+use crate::network::WiFiManager;
 use crate::types::Color;
 use esp_idf_hal::delay::Delay;
-use esp_idf_hal::io::{EspIOError, Write};
 use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_hal::sys::{esp_random, EspError};
+use esp_idf_hal::sys::esp_random;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
-use esp_idf_svc::http::client::EspHttpConnection;
-use esp_idf_svc::http::server::EspHttpServer;
-use esp_idf_svc::http::Method;
-use esp_idf_svc::wifi::NonBlocking;
-use serde::Deserialize;
 use smart_leds::hsv::{hsv2rgb, Hsv};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 
-// #[toml_cfg::toml_config]
-// pub struct Config {
-//     SSID: &'static str,
-//     PASSWORD: &'static str,
-// }
-
-#[derive(Debug, Deserialize)]
-struct ColorRequest {
-    color: String,
+#[derive(Clone)]
+pub struct State {
+    current_color: Arc<Mutex<Color>>,
+    is_rainbow_mode: Arc<AtomicBool>,
+    wifi: WiFiManager,
 }
 
-#[derive(Debug, Deserialize)]
-struct ConnectionRequest {
-    ssid: String,
-    password: String,
+impl State {
+    fn new(wifi: WiFiManager) -> Self {
+        Self {
+            current_color: Arc::new(Mutex::new(Color::default())),
+            is_rainbow_mode: Arc::new(AtomicBool::default()),
+            wifi,
+        }
+    }
 }
 
 fn main() {
@@ -48,12 +44,6 @@ fn main() {
     let password = "xxx".to_owned();
 
     let peripherals = Peripherals::take().expect("Failed to take peripherals");
-
-    let current_color = Arc::new(Mutex::new(Color::default()));
-    let is_rainbow_mode = Arc::new(AtomicBool::default());
-
-    // let app_config = CONFIG;
-    // log::info!("app-config: {app_config:?}");
 
     log::info!("init neopixel");
     let led_pin = peripherals.pins.gpio2;
@@ -71,147 +61,23 @@ fn main() {
     // let nvs = EspDefaultNvsPartition::take().unwrap();
 
     log::info!("Start AP!");
-
-    let mut wifi = network::WiFiManager::new(peripherals.modem, system_event_loop)
+    let wifi = network::WiFiManager::new(peripherals.modem, system_event_loop)
         .expect("Failed to create wifi struct");
-    wifi.start_ap_only("!!! MY SUPER COOL AP")
+
+    let state = State::new(wifi);
+    state
+        .wifi
+        .start_ap_only("!!! MY SUPER COOL AP")
         .expect("Failed to start AP");
 
-    let mut server =
-        EspHttpServer::new(&esp_idf_svc::http::server::Configuration::default()).unwrap();
-
-    server
-        .fn_handler(
-            "/",
-            Method::Get,
-            |request| -> core::result::Result<(), EspIOError> {
-                // TODO_SD: Already connected -> color_panel
-                log::info!("Index endpoint called");
-
-                let mut response = request.into_ok_response()?;
-                response.write_all(index::HTML.as_bytes())?;
-                Ok(())
-            },
-        )
-        .unwrap();
-
-    server
-        .fn_handler(
-            "/color_panel",
-            Method::Get,
-            |request| -> core::result::Result<(), EspIOError> {
-                let mut response = request.into_ok_response()?;
-                response.write_all(color_panel::HTML.as_bytes())?;
-                Ok(())
-            },
-        )
-        .unwrap();
-
-    let wifi_clone = wifi.clone();
-    server
-        .fn_handler(
-            "/connection_page",
-            Method::Get,
-            move |request| -> core::result::Result<(), EspIOError> {
-                log::info!("Scan networks ...");
-
-                let ap_infos = match wifi_clone.scan() {
-                    Ok(ap_infos) => ap_infos,
-                    Err(err) => {
-                        let error_message = format!("Failed to scan networks: {err}");
-                        log::error!("{error_message}");
-                        let response = request.into_response(500, Some(&error_message), &[]); // TODO_SD: Used?
-                        return Err(err.into());
-                    }
-                };
-
-                // log::info!("{ap_infos:?}");
-
-                let mut response = request.into_ok_response()?;
-                response.write_all(connection_page(&ap_infos).as_bytes())?;
-                Ok(())
-            },
-        )
-        .unwrap();
-
-    let wifi_clone = wifi.clone();
-    server
-        .fn_handler(
-            "/connect_to_wifi",
-            Method::Post,
-            move |mut request| -> core::result::Result<(), EspIOError> {
-                log::info!("!!! Connect to WIFI called");
-                let mut buf = [0; 100]; // TODO_SD: Check buffer overflow, check format
-                let bytes_read = request.read(&mut buf).unwrap();
-                let body = str::from_utf8(&buf[..bytes_read]).unwrap();
-                let connection_req: ConnectionRequest = serde_json::from_str(body).unwrap();
-
-                log::info!(
-                    "Wants to connect to: {} with password {}",
-                    connection_req.ssid,
-                    connection_req.password
-                );
-
-                match wifi_clone.connect_to_wifi(&connection_req.ssid, &connection_req.password) {
-                    Ok(sta_ip) => {
-                        log::info!("Sucessfully connected to WiFi. IP-Address: {sta_ip:?}");
-                        let response = request.into_ok_response()?;
-                        Ok(())
-                    }
-                    Err(err) => {
-                        let error_message = format!("Failed to connect to WiFi: {err}");
-                        log::error!("{error_message}");
-                        let response = request.into_response(500, Some(&error_message), &[]); // TODO_SD: Used?
-                        Ok(()) // TODO_SD: Return well fitting error
-                    }
-                }
-            },
-        )
-        .unwrap();
-
-    let current_color_clone = current_color.clone();
-    let is_rainbow_mode_clone = is_rainbow_mode.clone();
-    server
-        .fn_handler(
-            "/set_color",
-            Method::Post,
-            move |mut request| -> core::result::Result<(), EspIOError> {
-                log::info!("!!! Set color called");
-
-                let mut buf = [0; 100]; // TODO_SD: Check buffer overflow, check format
-                let bytes_read = request.read(&mut buf).unwrap();
-                let body = str::from_utf8(&buf[..bytes_read]).unwrap();
-                let color_req: ColorRequest = serde_json::from_str(body).unwrap();
-
-                log::info!("New Color: {}", color_req.color);
-
-                is_rainbow_mode_clone.store(false, Ordering::SeqCst);
-                *current_color_clone.lock().unwrap() = Color::from(color_req.color);
-
-                Ok(())
-            },
-        )
-        .unwrap();
-
-    let is_rainbow_mode_clone = is_rainbow_mode.clone();
-    server
-        .fn_handler(
-            "/rainbow",
-            Method::Post,
-            move |_| -> core::result::Result<(), EspIOError> {
-                log::info!("Activate Rainbow Mode");
-                is_rainbow_mode_clone.store(true, Ordering::SeqCst);
-                Ok(())
-            },
-        )
-        .unwrap();
+    let server = Server::new(state.clone());
 
     log::info!("Server awaiting request!");
 
     let mut hue = unsafe { esp_random() } as u8;
 
     loop {
-        while is_rainbow_mode.load(Ordering::SeqCst) {
+        while state.is_rainbow_mode.load(Ordering::SeqCst) {
             let pixels = std::iter::repeat(hsv2rgb(Hsv {
                 hue,
                 sat: 255,
@@ -224,7 +90,7 @@ fn main() {
 
             hue = hue.wrapping_add(10);
         }
-        let pixels = std::iter::repeat(current_color.lock().unwrap().0).take(25);
+        let pixels = std::iter::repeat(state.current_color.lock().unwrap().0).take(25);
         ws2812.write_nocopy(pixels).unwrap();
 
         delay.delay_ms(100);
