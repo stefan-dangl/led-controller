@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Color(pub smart_leds::RGB<u8>);
 
 impl From<String> for Color {

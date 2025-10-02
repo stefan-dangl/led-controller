@@ -1,19 +1,18 @@
 mod frontend;
 mod http;
+mod led;
 mod network;
 mod types;
 
 use crate::http::Server;
+use crate::led::Led;
 use crate::network::WiFiManager;
 use crate::types::Color;
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_hal::sys::esp_random;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
-use smart_leds::hsv::{hsv2rgb, Hsv};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 
 #[derive(Clone)]
 pub struct State {
@@ -48,7 +47,7 @@ fn main() {
     log::info!("init neopixel");
     let led_pin = peripherals.pins.gpio2;
     let channel = peripherals.rmt.channel0;
-    let mut ws2812 = Ws2812Esp32Rmt::new(channel, led_pin).unwrap();
+    let mut led = Led::new(channel, led_pin);
 
     log::info!("Start NeoPixel rainbow!");
 
@@ -74,25 +73,12 @@ fn main() {
 
     log::info!("Server awaiting request!");
 
-    let mut hue = unsafe { esp_random() } as u8;
-
     loop {
         while state.is_rainbow_mode.load(Ordering::SeqCst) {
-            let pixels = std::iter::repeat(hsv2rgb(Hsv {
-                hue,
-                sat: 255,
-                val: 8,
-            }))
-            .take(25);
-            ws2812.write_nocopy(pixels).unwrap();
-
+            led.rainbow();
             delay.delay_ms(100);
-
-            hue = hue.wrapping_add(10);
         }
-        let pixels = std::iter::repeat(state.current_color.lock().unwrap().0).take(25);
-        ws2812.write_nocopy(pixels).unwrap();
-
+        led.set_color(state.current_color.lock().unwrap().clone());
         delay.delay_ms(100);
     }
 }
