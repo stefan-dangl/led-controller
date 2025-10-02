@@ -31,9 +31,9 @@ impl WiFiManager {
 
     pub fn start_ap_only(&self, ap_ssid: &str) -> anyhow::Result<()> {
         let mut esp_wifi = self.wifi.lock().unwrap();
-        // TODO_SD: Deadlock?
         let mut wifi = BlockingWifi::wrap(&mut *esp_wifi, self.sysloop.clone())?;
 
+        log::info!("Define config");
         let ap_config = AccessPointConfiguration {
             ssid: ap_ssid.try_into().unwrap(),
             password: "".try_into().unwrap(),
@@ -42,9 +42,16 @@ impl WiFiManager {
             ..Default::default()
         };
 
-        wifi.set_configuration(&Configuration::AccessPoint(ap_config))?;
+        // Use mixed mode instead of pure AP mode
+        let config = Configuration::Mixed(ClientConfiguration::default(), ap_config);
+        log::info!("Set config");
+        wifi.set_configuration(&config)?;
+        log::info!("start");
         wifi.start()?;
-        wifi.wait_netif_up()?;
+        // log::info!("wait netif up");
+        // wifi.wait_netif_up()?;
+
+        log::info!("get IP info");
 
         let ap_ip = wifi.wifi().ap_netif().get_ip_info()?;
         log::info!("AP started: {} - IP: {}", ap_ssid, ap_ip.ip);
@@ -99,16 +106,4 @@ impl WiFiManager {
             Ok(None)
         }
     }
-
-    // pub fn get_connection_status(&self) -> anyhow::Result<(Option<IpInfo>, Option<IpInfo>)> {
-    //     let wifi = self.wifi.lock().unwrap();
-    //     let ap_ip = wifi.ap_netif().get_ip_info().ok();
-    //     let sta_ip = wifi.sta_netif().get_ip_info().ok();
-    //     Ok((ap_ip, sta_ip))
-    // }
-
-    // pub fn is_sta_connected(&self) -> anyhow::Result<bool> {
-    //     let wifi = self.wifi.lock().unwrap();
-    //     Ok(wifi.is_connected()?)
-    // }
 }
