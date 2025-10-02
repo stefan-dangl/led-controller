@@ -5,6 +5,7 @@ use esp_idf_svc::http::{server::EspHttpServer, Method};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    config::INTENSITY_REDUCTION,
     frontend::{color_panel, index, wifi_connection::connection_page},
     types::Color,
     State,
@@ -175,7 +176,9 @@ impl Server {
                     log::info!("New Color: {}", color_req.color);
 
                     state.is_rainbow_mode.store(false, Ordering::SeqCst);
-                    *state.current_color.lock().unwrap() = Color::from(color_req.color);
+                    let mut color = Color::from(color_req.color);
+                    color.reduce_intensity(INTENSITY_REDUCTION);
+                    *state.current_color.lock().unwrap() = color;
 
                     Ok(())
                 },

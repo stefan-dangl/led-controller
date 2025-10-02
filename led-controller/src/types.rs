@@ -9,3 +9,11 @@ impl From<String> for Color {
         Self(smart_leds::RGB::new(red, green, blue))
     }
 }
+
+impl Color {
+    pub fn reduce_intensity(&mut self, factor: u8) {
+        self.0.r >>= factor;
+        self.0.g >>= factor;
+        self.0.b >>= factor;
+    }
+}
