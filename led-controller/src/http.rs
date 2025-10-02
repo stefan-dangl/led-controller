@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 
 use esp_idf_hal::io::{EspIOError, Write};
 use esp_idf_svc::http::{server::EspHttpServer, Method};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     frontend::{color_panel, index, wifi_connection::connection_page},
@@ -19,6 +19,11 @@ struct ColorRequest {
 struct ConnectionRequest {
     ssid: String,
     password: String,
+}
+
+#[derive(Debug, Serialize)]
+struct ConnectionResponse {
+    ip_address: String,
 }
 
 pub struct Server(EspHttpServer<'static>);
@@ -118,10 +123,29 @@ impl Server {
                         .wifi
                         .connect_to_wifi(&connection_req.ssid, &connection_req.password)
                     {
-                        Ok(sta_ip) => {
-                            log::info!("Sucessfully connected to WiFi. IP-Address: {sta_ip:?}");
-                            let response = request.into_ok_response()?;
+                        Ok(Some(sta_ip)) => {
+                            log::info!("Successfully connected to WiFi. IP-Address: {sta_ip:?}");
+                            let response_data = ConnectionResponse {
+                                ip_address: sta_ip.ip.to_string(),
+                            };
+                            let mut response = request.into_ok_response()?;
+                            let json_bytes = serde_json::to_vec(&response_data)
+                                .map_err(|e| {
+                                    log::error!("Failed to serialize response data: {}", e);
+                                    e
+                                })
+                                .unwrap();
+                            response.write_all(&json_bytes).map_err(|e| {
+                                log::error!("Failed to write response: {}", e);
+                                e
+                            })?;
                             Ok(())
+                        }
+                        Ok(None) => {
+                            let error_message = format!("Failed to connect to WiFi");
+                            log::error!("{error_message}");
+                            let response = request.into_response(500, Some(&error_message), &[]); // TODO_SD: Used?
+                            Ok(()) // TODO_SD: Return well fitting error
                         }
                         Err(err) => {
                             let error_message = format!("Failed to connect to WiFi: {err}");

@@ -264,6 +264,32 @@ const HTML_1: &str = r##"
             transform: translateY(-2px);
         }
 
+        /* Success IP message styles */
+        .success-ip-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            background: rgba(0, 200, 150, 0.2);
+            color: var(--success);
+            display: none;
+        }
+
+        .success-ip-message.active {
+            display: block;
+        }
+
+        .ip-address {
+            color: var(--success);
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .ip-address:hover {
+            color: #00e6a8;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
@@ -300,6 +326,11 @@ const HTML_2: &str = r##"
             </div>
 
             <div class="status-message" id="statusMessage"></div>
+
+            <!-- Success IP message -->
+            <div class="success-ip-message" id="successIpMessage">
+                Please continue at <span class="ip-address" id="ipAddress"></span> after connecting the device in your hands to the selected WiFi as well.
+            </div>
         </div>
 
         <!-- Back button positioned between wifi card and footer -->
@@ -323,6 +354,8 @@ const HTML_2: &str = r##"
             let passwordInput = document.getElementById('passwordInput');
             let connectBtn = document.getElementById('connectBtn');
             let statusMessage = document.getElementById('statusMessage');
+            let successIpMessage = document.getElementById('successIpMessage');
+            let ipAddress = document.getElementById('ipAddress');
             let backBtn = document.getElementById('backBtn');
 
             // Track selected WiFi
@@ -350,6 +383,7 @@ const HTML_2: &str = r##"
                         passwordInput.value = '';
                         passwordInput.focus();
                         statusMessage.className = 'status-message';
+                        successIpMessage.classList.remove('active');
                     } else {
                         passwordSection.classList.remove('active');
                         // Immediately connect to unprotected WiFi
@@ -412,6 +446,12 @@ const HTML_2: &str = r##"
                     .then(data => {
                         // Handle successful connection
                         showStatus('Successfully connected to ' + ssid, 'success');
+
+                        // Show the success IP message with the new IP address
+                        if (data.ip_address) {
+                            showSuccessIpMessage(data.ip_address);
+                        }
+
                         // Reset selection after successful connection
                         setTimeout(() => {
                             wifiItems.forEach(i => i.classList.remove('selected'));
@@ -431,6 +471,18 @@ const HTML_2: &str = r##"
             function showStatus(message, type) {
                 statusMessage.textContent = message;
                 statusMessage.className = 'status-message ' + type;
+            }
+
+            // Function to show success IP message
+            function showSuccessIpMessage(ip) {
+                ipAddress.textContent = ip;
+                successIpMessage.classList.add('active');
+
+                // Make the IP address clickable
+                ipAddress.onclick = function () {
+                    // Navigate to the IP address
+                    window.location.href = 'http://' + ip;
+                };
             }
 
             // Add event listener for the back button
