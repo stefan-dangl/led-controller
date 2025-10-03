@@ -3,16 +3,15 @@ mod frontend;
 mod http;
 mod led;
 mod network;
-mod types;
 
 use crate::config::{AP_SSID, SLEEP_TIME_MS};
 use crate::http::Server;
 use crate::led::Led;
 use crate::network::WiFiManager;
-use crate::types::Color;
 use esp_idf_hal::delay::Delay;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
+use hardware_agnostic_utils::types::Color;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 

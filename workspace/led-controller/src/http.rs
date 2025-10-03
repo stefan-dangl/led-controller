@@ -1,7 +1,6 @@
 use crate::{
     config::INTENSITY_REDUCTION,
     frontend::{color_panel, index, wifi_connection::connection_page},
-    types::Color,
     State,
 };
 use esp_idf_hal::{
@@ -9,6 +8,7 @@ use esp_idf_hal::{
     sys::EspError,
 };
 use esp_idf_svc::http::{server::EspHttpServer, Method};
+use hardware_agnostic_utils::types::Color;
 use serde::{Deserialize, Serialize};
 use std::{str::Utf8Error, sync::atomic::Ordering};
 
@@ -180,7 +180,6 @@ impl Server {
     }
 }
 
-// TODO_SD: Test?
 fn read_body(
     request: &mut esp_idf_svc::http::server::Request<
         &mut esp_idf_svc::http::server::EspHttpConnection<'_>,

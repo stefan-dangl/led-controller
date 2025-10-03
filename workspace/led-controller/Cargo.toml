@@ -26,12 +26,13 @@ experimental = ["esp-idf-svc/experimental"]
 log = "0.4"
 esp-idf-svc = "0.51"
 esp-idf-hal = "0.45"
-embedded-svc = "0.28.1"
+embedded-svc = "0.28"
 serde = "1.0"
 serde_json = "1.0"
 smart-leds = "0.4"
 ws2812-esp32-rmt-driver = { version = "0.12", features = ["smart-leds-trait"] }
-thiserror = "2.0.17"
+thiserror = "2.0"
+hardware-agnostic-utils.workspace = true
 
 [build-dependencies]
 embuild = "0.33"
