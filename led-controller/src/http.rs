@@ -1,15 +1,16 @@
-use std::sync::atomic::Ordering;
-
-use esp_idf_hal::io::{EspIOError, Write};
-use esp_idf_svc::http::{server::EspHttpServer, Method};
-use serde::{Deserialize, Serialize};
-
 use crate::{
     config::INTENSITY_REDUCTION,
     frontend::{color_panel, index, wifi_connection::connection_page},
     types::Color,
     State,
 };
+use esp_idf_hal::{
+    io::{EspIOError, Write},
+    sys::EspError,
+};
+use esp_idf_svc::http::{server::EspHttpServer, Method};
+use serde::{Deserialize, Serialize};
+use std::{str::Utf8Error, sync::atomic::Ordering};
 
 #[derive(Debug, Deserialize)]
 struct ColorRequest {
@@ -30,173 +31,176 @@ struct ConnectionResponse {
 pub struct Server(EspHttpServer<'static>);
 
 impl Server {
-    pub fn new(state: State) -> Self {
-        let server =
-            EspHttpServer::new(&esp_idf_svc::http::server::Configuration::default()).unwrap();
+    pub fn new(state: State) -> Result<Self, EspIOError> {
+        let server = EspHttpServer::new(&esp_idf_svc::http::server::Configuration::default())?;
         let mut this = Self(server);
 
-        this.get_index();
-        this.get_color_panel();
-        this.get_networks(state.clone());
-        this.connect_to_wifi(state.clone());
-        this.set_color(state.clone());
-        this.rainbow_mode(state);
+        this.get_index()?;
+        this.get_color_panel()?;
+        this.get_networks(state.clone())?;
+        this.connect_to_wifi(state.clone())?;
+        this.set_color(state.clone())?;
+        this.rainbow_mode(state)?;
 
-        this
+        Ok(this)
     }
 
-    fn get_index(&mut self) {
-        self.0
-            .fn_handler(
-                "/",
-                Method::Get,
-                |request| -> core::result::Result<(), EspIOError> {
-                    // TODO_SD: Already connected -> color_panel
-                    log::info!("Index endpoint called");
-
-                    let mut response = request.into_ok_response()?;
-                    response.write_all(index::HTML.as_bytes())?;
-                    Ok(())
-                },
-            )
-            .unwrap();
+    fn get_index(&mut self) -> Result<(), EspError> {
+        self.0.fn_handler(
+            "/",
+            Method::Get,
+            |request| -> core::result::Result<(), HttpError> {
+                let mut response = request.into_ok_response()?;
+                response.write_all(index::HTML.as_bytes())?;
+                Ok(())
+            },
+        )?;
+        Ok(())
     }
 
-    fn get_color_panel(&mut self) {
-        self.0
-            .fn_handler(
-                "/color_panel",
-                Method::Get,
-                |request| -> core::result::Result<(), EspIOError> {
-                    let mut response = request.into_ok_response()?;
-                    response.write_all(color_panel::HTML.as_bytes())?;
-                    Ok(())
-                },
-            )
-            .unwrap();
+    fn get_color_panel(&mut self) -> Result<(), EspError> {
+        self.0.fn_handler(
+            "/color_panel",
+            Method::Get,
+            |request| -> core::result::Result<(), HttpError> {
+                let mut response = request.into_ok_response()?;
+                response.write_all(color_panel::HTML.as_bytes())?;
+                Ok(())
+            },
+        )?;
+        Ok(())
     }
 
-    fn get_networks(&mut self, state: State) {
-        self.0
-            .fn_handler(
-                "/connection_page",
-                Method::Get,
-                move |request| -> core::result::Result<(), EspIOError> {
-                    log::info!("Scan networks ...");
+    fn get_networks(&mut self, state: State) -> Result<(), EspError> {
+        self.0.fn_handler(
+            "/connection_page",
+            Method::Get,
+            move |request| -> core::result::Result<(), HttpError> {
+                log::info!("Scan networks ...");
 
-                    let ap_infos = match state.wifi.scan() {
-                        Ok(ap_infos) => ap_infos,
-                        Err(err) => {
-                            let error_message = format!("Failed to scan networks: {err}");
-                            log::error!("{error_message}");
-                            let response = request.into_response(500, Some(&error_message), &[]); // TODO_SD: Used?
-                            return Err(err.into());
-                        }
-                    };
-
-                    let mut response = request.into_ok_response()?;
-                    response.write_all(connection_page(&ap_infos).as_bytes())?;
-                    Ok(())
-                },
-            )
-            .unwrap();
-    }
-
-    fn connect_to_wifi(&mut self, state: State) {
-        self.0
-            .fn_handler(
-                "/connect_to_wifi",
-                Method::Post,
-                move |mut request| -> core::result::Result<(), EspIOError> {
-                    log::info!("!!! Connect to WIFI called");
-                    let mut buf = [0; 100]; // TODO_SD: Check buffer overflow, check format
-                    let bytes_read = request.read(&mut buf).unwrap();
-                    let body = str::from_utf8(&buf[..bytes_read]).unwrap();
-                    let connection_req: ConnectionRequest = serde_json::from_str(body).unwrap();
-
-                    log::info!(
-                        "Wants to connect to: {} with password {}",
-                        connection_req.ssid,
-                        connection_req.password
-                    );
-
-                    match state
-                        .wifi
-                        .connect_to_wifi(&connection_req.ssid, &connection_req.password)
-                    {
-                        Ok(Some(sta_ip)) => {
-                            log::info!("Successfully connected to WiFi. IP-Address: {sta_ip:?}");
-                            let response_data = ConnectionResponse {
-                                ip_address: sta_ip.ip.to_string(),
-                            };
-                            let mut response = request.into_ok_response()?;
-                            let json_bytes = serde_json::to_vec(&response_data)
-                                .map_err(|e| {
-                                    log::error!("Failed to serialize response data: {}", e);
-                                    e
-                                })
-                                .unwrap();
-                            response.write_all(&json_bytes).map_err(|e| {
-                                log::error!("Failed to write response: {}", e);
-                                e
-                            })?;
-                            Ok(())
-                        }
-                        Ok(None) => {
-                            let error_message = format!("Failed to connect to WiFi");
-                            log::error!("{error_message}");
-                            let response = request.into_response(500, Some(&error_message), &[]); // TODO_SD: Used?
-                            Ok(()) // TODO_SD: Return well fitting error
-                        }
-                        Err(err) => {
-                            let error_message = format!("Failed to connect to WiFi: {err}");
-                            log::error!("{error_message}");
-                            let response = request.into_response(500, Some(&error_message), &[]); // TODO_SD: Used?
-                            Ok(()) // TODO_SD: Return well fitting error
-                        }
+                match state.wifi.scan() {
+                    Ok(ap_infos) => {
+                        let mut response = request.into_ok_response()?;
+                        response.write_all(connection_page(&ap_infos).as_bytes())?;
                     }
-                },
-            )
-            .unwrap();
+                    Err(err) => {
+                        let error_message = format!("Failed to scan networks: {err}");
+                        log::error!("{error_message}");
+                        let mut response = request.into_response(500, Some(&error_message), &[])?;
+                        response.write_all(error_message.as_bytes())?;
+                    }
+                }
+                Ok(())
+            },
+        )?;
+        Ok(())
     }
 
-    fn set_color(&mut self, state: State) {
-        self.0
-            .fn_handler(
-                "/set_color",
-                Method::Post,
-                move |mut request| -> core::result::Result<(), EspIOError> {
-                    log::info!("!!! Set color called");
+    fn connect_to_wifi(&mut self, state: State) -> Result<(), EspError> {
+        self.0.fn_handler(
+            "/connect_to_wifi",
+            Method::Post,
+            move |mut request| -> core::result::Result<(), HttpError> {
+                let body = read_body(&mut request)?;
+                let connection_req: ConnectionRequest = serde_json::from_str(&body)?;
 
-                    let mut buf = [0; 100]; // TODO_SD: Check buffer overflow, check format
-                    let bytes_read = request.read(&mut buf).unwrap();
-                    let body = str::from_utf8(&buf[..bytes_read]).unwrap();
-                    let color_req: ColorRequest = serde_json::from_str(body).unwrap();
-
-                    log::info!("New Color: {}", color_req.color);
-
-                    state.is_rainbow_mode.store(false, Ordering::SeqCst);
-                    let mut color = Color::from(color_req.color);
-                    color.reduce_intensity(INTENSITY_REDUCTION);
-                    *state.current_color.lock().unwrap() = color;
-
-                    Ok(())
-                },
-            )
-            .unwrap();
+                log::info!("Try connecting to WiFi {}", connection_req.ssid,);
+                match state
+                    .wifi
+                    .connect_to_wifi(&connection_req.ssid, &connection_req.password)
+                {
+                    Ok(Some(sta_ip)) => {
+                        log::info!(
+                            "Successfully connected to WiFi {}. IP-Address: {sta_ip:?}",
+                            connection_req.ssid
+                        );
+                        let response_data = ConnectionResponse {
+                            ip_address: sta_ip.ip.to_string(),
+                        };
+                        let mut response = request.into_ok_response()?;
+                        let json_bytes = serde_json::to_vec(&response_data)?;
+                        response.write_all(&json_bytes)?;
+                    }
+                    others => {
+                        let error_message = if let Err(err) = others {
+                            format!("Failed to connect to WiFi: {err}")
+                        } else {
+                            format!("Failed to connect to WiFi")
+                        };
+                        log::error!("{error_message}");
+                        let mut response = request.into_response(500, Some(&error_message), &[])?;
+                        response.write_all(error_message.as_bytes())?;
+                    }
+                }
+                Ok(())
+            },
+        )?;
+        Ok(())
     }
 
-    fn rainbow_mode(&mut self, state: State) {
-        self.0
-            .fn_handler(
-                "/rainbow",
-                Method::Post,
-                move |_| -> core::result::Result<(), EspIOError> {
-                    log::info!("Activate Rainbow Mode");
-                    state.is_rainbow_mode.store(true, Ordering::SeqCst);
-                    Ok(())
-                },
-            )
-            .unwrap();
+    fn set_color(&mut self, state: State) -> Result<(), EspError> {
+        self.0.fn_handler(
+            "/set_color",
+            Method::Post,
+            move |mut request| -> core::result::Result<(), HttpError> {
+                let body = read_body(&mut request)?;
+                let color_req: ColorRequest = serde_json::from_str(&body)?;
+                log::info!("New Color: {}", color_req.color);
+
+                state.is_rainbow_mode.store(false, Ordering::SeqCst);
+                match Color::try_from(color_req.color) {
+                    Ok(mut color) => {
+                        color.reduce_intensity(INTENSITY_REDUCTION);
+                        *state.current_color.lock().unwrap() = color;
+                        Ok(())
+                    }
+                    Err(err) => {
+                        let error_message = format!("Invalid color Format: {err}");
+                        log::error!("{error_message}");
+                        let mut response = request.into_response(400, Some(&error_message), &[])?;
+                        response.write_all(error_message.as_bytes())?;
+                        Ok(())
+                    }
+                }
+            },
+        )?;
+        Ok(())
     }
+
+    fn rainbow_mode(&mut self, state: State) -> Result<(), EspError> {
+        self.0.fn_handler(
+            "/rainbow",
+            Method::Post,
+            move |_| -> core::result::Result<(), EspIOError> {
+                state.is_rainbow_mode.store(true, Ordering::SeqCst);
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+}
+
+// TODO_SD: Test?
+fn read_body(
+    request: &mut esp_idf_svc::http::server::Request<
+        &mut esp_idf_svc::http::server::EspHttpConnection<'_>,
+    >,
+) -> Result<String, HttpError> {
+    const MAX_REQUEST_LENGTH: usize = 100;
+    let mut buf = [0; MAX_REQUEST_LENGTH];
+    let bytes_read = request.read(&mut buf)?;
+    let string_slice = std::str::from_utf8(&buf[..bytes_read])?;
+    Ok(string_slice.to_string())
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum HttpError {
+    #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
+
+    #[error(transparent)]
+    Utf8(#[from] Utf8Error),
+
+    #[error(transparent)]
+    EspIo(#[from] EspIOError),
 }

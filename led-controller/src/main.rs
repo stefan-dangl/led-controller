@@ -44,7 +44,7 @@ fn main() {
     log::info!("... Init Neopixel driver");
     let led_pin = peripherals.pins.gpio2;
     let channel = peripherals.rmt.channel0;
-    let mut led = Led::new(channel, led_pin);
+    let mut led = Led::new(channel, led_pin).expect("Failed to init Neopixel driver");
 
     log::info!("... Start WiFi-AP");
     let wifi = network::WiFiManager::new(peripherals.modem, system_event_loop)
@@ -52,20 +52,24 @@ fn main() {
     let state = State::new(wifi);
     state
         .wifi
-        .start_ap_only(AP_SSID)
+        .start_ap(AP_SSID)
         .expect("Failed to start WiFi-AP");
 
-    log::info!("... Start HTTP Server");
-    let _server = Server::new(state.clone());
+    log::info!("... Set up HTTP Server");
+    let _server = Server::new(state.clone()).expect("Failed to set up HTTP Server");
 
     log::info!("Init done - awaiting requests");
     let delay = Delay::default();
     loop {
         while state.is_rainbow_mode.load(Ordering::SeqCst) {
-            led.rainbow();
+            if let Err(err) = led.rainbow() {
+                log::error!("Failed to set rainbow color: {err}")
+            }
             delay.delay_ms(SLEEP_TIME_MS);
         }
-        led.set_color(state.current_color.lock().unwrap().clone());
+        if let Err(err) = led.set_color(state.current_color.lock().unwrap().clone()) {
+            log::error!("Failed to set color: {err}")
+        }
         delay.delay_ms(SLEEP_TIME_MS);
     }
 }

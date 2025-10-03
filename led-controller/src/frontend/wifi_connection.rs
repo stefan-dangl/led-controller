@@ -2,6 +2,15 @@ use esp_idf_svc::wifi::AccessPointInfo;
 
 // TODO_SD: May reuse css part from frontend
 
+const NUMBER_OF_BARS: i8 = 4;
+const LOWEST_ACCEPTABLE_CONNECTION_QUALITY: i8 = -100;
+const ACTIVE_BAR: &str = r##"
+<div class="signal-bar active"></div>
+"##;
+const INACTIVE_BAR: &str = r##"
+<div class="signal-bar"></div>
+"##;
+
 const HTML_1: &str = r##"
 <!DOCTYPE html>
 <html lang="en">
@@ -482,21 +491,12 @@ const HTML_2: &str = r##"
 </html>
 "##;
 
-const NUMBER_OF_BARS: i8 = 4;
-const LOWEST_ACCEPTABLE_CONNECTION_QUALITY: i8 = -100;
-const ACTIVE_BAR: &str = r##"
-<div class="signal-bar active"></div>
-"##;
-const INACTIVE_BAR: &str = r##"
-<div class="signal-bar"></div>
-"##;
-
-// TODO_SD: Add tests
+// TODO_SD: Test
 fn signal_strength(signal_strength: i8) -> String {
     let inactive_bars = signal_strength / (LOWEST_ACCEPTABLE_CONNECTION_QUALITY / NUMBER_OF_BARS); // -100 -> 4, -75 -> 3, -50 -> 2
     let active_bars = NUMBER_OF_BARS - inactive_bars;
 
-    let mut output = "".to_owned();
+    let mut output = String::new();
 
     for _ in 0..active_bars {
         output = format!("{output}{ACTIVE_BAR}")

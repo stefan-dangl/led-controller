@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use esp_idf_hal::{peripheral, sys::EspError};
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -9,6 +7,7 @@ use esp_idf_svc::{
         Configuration, EspWifi,
     },
 };
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct WiFiManager {
@@ -20,7 +19,7 @@ impl WiFiManager {
     pub fn new(
         modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
         sysloop: EspSystemEventLoop,
-    ) -> anyhow::Result<Self> {
+    ) -> Result<Self, NetworkError> {
         let esp_wifi = EspWifi::new(modem, sysloop.clone(), None)?;
 
         Ok(Self {
@@ -29,11 +28,10 @@ impl WiFiManager {
         })
     }
 
-    pub fn start_ap_only(&self, ap_ssid: &str) -> anyhow::Result<()> {
+    pub fn start_ap(&self, ap_ssid: &str) -> Result<(), NetworkError> {
         let mut esp_wifi = self.wifi.lock().unwrap();
         let mut wifi = BlockingWifi::wrap(&mut *esp_wifi, self.sysloop.clone())?;
 
-        log::info!("Define config");
         let ap_config = AccessPointConfiguration {
             ssid: ap_ssid.try_into().unwrap(),
             password: "".try_into().unwrap(),
@@ -42,25 +40,17 @@ impl WiFiManager {
             ..Default::default()
         };
 
-        // Use mixed mode instead of pure AP mode
         let config = Configuration::Mixed(ClientConfiguration::default(), ap_config);
-        log::info!("Set config");
         wifi.set_configuration(&config)?;
-        log::info!("start");
         wifi.start()?;
-        // log::info!("wait netif up");
-        // wifi.wait_netif_up()?;
-
-        log::info!("get IP info");
 
         let ap_ip = wifi.wifi().ap_netif().get_ip_info()?;
-        log::info!("AP started: {} - IP: {}", ap_ssid, ap_ip.ip);
+        log::info!("AP started: SSID: {}, IP: {}", ap_ssid, ap_ip.ip);
 
         Ok(())
     }
 
     pub fn scan(&self) -> Result<Vec<AccessPointInfo>, EspError> {
-        log::info!("!!! Scan network");
         self.wifi.lock().unwrap().scan()
     }
 
@@ -68,42 +58,49 @@ impl WiFiManager {
         &self,
         sta_ssid: &str,
         sta_pass: &str,
-    ) -> anyhow::Result<Option<IpInfo>> {
+    ) -> Result<Option<IpInfo>, NetworkError> {
         let mut esp_wifi = self.wifi.lock().unwrap();
-        // TODO_SD: Deadlock?
         let mut wifi = BlockingWifi::wrap(&mut *esp_wifi, self.sysloop.clone())?;
 
-        // Get current AP configuration to maintain it
         let current_config = wifi.get_configuration()?;
         let ap_config = match current_config {
             Configuration::AccessPoint(ap) => ap,
             Configuration::Mixed(_, ap) => ap,
-            _ => anyhow::bail!("AP not configured"),
+            _ => panic!("AP not configured"),
         };
 
-        // Switch to mixed mode
+        // TODO_SD: Add test
         let mixed_config = Configuration::Mixed(
             ClientConfiguration {
-                ssid: sta_ssid.try_into().unwrap(), // TODO_SD: Validate strings without unwrap
-                password: sta_pass.try_into().unwrap(),
+                ssid: sta_ssid
+                    .try_into()
+                    .map_err(|_| NetworkError::HeaplessStringConvertion)?,
+                password: sta_pass
+                    .try_into()
+                    .map_err(|_| NetworkError::HeaplessStringConvertion)?,
                 ..Default::default()
             },
             ap_config,
         );
 
         wifi.set_configuration(&mixed_config)?;
-
-        log::info!("Connecting to WiFi: {}", sta_ssid);
         wifi.connect()?;
 
         if wifi.is_connected()? {
             wifi.wait_netif_up()?;
             let sta_ip = wifi.wifi().sta_netif().get_ip_info()?;
-            log::info!("Connected to WiFi! STA IP: {}", sta_ip.ip);
             Ok(Some(sta_ip))
         } else {
-            log::warn!("Failed to connect to WiFi");
             Ok(None)
         }
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum NetworkError {
+    #[error("Failed to convert to Heapless String. Input may be too long")]
+    HeaplessStringConvertion,
+
+    #[error(transparent)]
+    Esp(#[from] EspError),
 }

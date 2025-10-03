@@ -1,8 +1,10 @@
+use crate::{
+    config::{MAX_LED_STRIP_LENGTH, RAINBOW_INTENSITY, RAINBOW_SATURATION, RAINBOW_STEP},
+    types::Color,
+};
 use esp_idf_hal::{gpio::OutputPin, peripheral::Peripheral, rmt::RmtChannel, sys::esp_random};
 use smart_leds::hsv::{hsv2rgb, Hsv};
-use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
-
-use crate::types::Color;
+use ws2812_esp32_rmt_driver::{Ws2812Esp32Rmt, Ws2812Esp32RmtDriverError};
 
 pub struct Led {
     driver: Ws2812Esp32Rmt<'static>,
@@ -13,26 +15,26 @@ impl Led {
     pub fn new<C: RmtChannel>(
         channel: impl Peripheral<P = C> + 'static,
         pin: impl Peripheral<P = impl OutputPin> + 'static,
-    ) -> Self {
-        Self {
-            driver: Ws2812Esp32Rmt::new(channel, pin).unwrap(),
+    ) -> Result<Self, Ws2812Esp32RmtDriverError> {
+        Ok(Self {
+            driver: Ws2812Esp32Rmt::new(channel, pin)?,
             hue: unsafe { esp_random() } as u8,
-        }
+        })
     }
 
-    pub fn set_color(&mut self, color: Color) {
-        let pixels = std::iter::repeat(color.0).take(25);
-        self.driver.write_nocopy(pixels).unwrap();
+    pub fn set_color(&mut self, color: Color) -> Result<(), Ws2812Esp32RmtDriverError> {
+        let pixels = std::iter::repeat(color.0).take(MAX_LED_STRIP_LENGTH);
+        self.driver.write_nocopy(pixels)
     }
 
-    pub fn rainbow(&mut self) {
+    pub fn rainbow(&mut self) -> Result<(), Ws2812Esp32RmtDriverError> {
+        self.hue = self.hue.wrapping_add(RAINBOW_STEP);
         let pixels = std::iter::repeat(hsv2rgb(Hsv {
             hue: self.hue,
-            sat: 255,
-            val: 8,
+            sat: RAINBOW_SATURATION,
+            val: RAINBOW_INTENSITY,
         }))
-        .take(25);
-        self.driver.write_nocopy(pixels).unwrap();
-        self.hue = self.hue.wrapping_add(5);
+        .take(MAX_LED_STRIP_LENGTH);
+        self.driver.write_nocopy(pixels)
     }
 }
