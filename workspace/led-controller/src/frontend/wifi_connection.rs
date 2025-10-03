@@ -1,15 +1,7 @@
 use esp_idf_svc::wifi::AccessPointInfo;
+use hardware_agnostic_utils::utils::number_of_active_wifi_bars;
 
 // TODO_SD: May reuse css part from frontend
-
-const NUMBER_OF_BARS: i8 = 4;
-const LOWEST_ACCEPTABLE_CONNECTION_QUALITY: i8 = -100;
-const ACTIVE_BAR: &str = r##"
-<div class="signal-bar active"></div>
-"##;
-const INACTIVE_BAR: &str = r##"
-<div class="signal-bar"></div>
-"##;
 
 const HTML_1: &str = r##"
 <!DOCTYPE html>
@@ -491,10 +483,16 @@ const HTML_2: &str = r##"
 </html>
 "##;
 
-// TODO_SD: Test
+const NUMBER_OF_BARS: i8 = 4;
+const ACTIVE_BAR: &str = r##"
+<div class="signal-bar active"></div>
+"##;
+const INACTIVE_BAR: &str = r##"
+<div class="signal-bar"></div>
+"##;
+
 fn signal_strength(signal_strength: i8) -> String {
-    let inactive_bars = signal_strength / (LOWEST_ACCEPTABLE_CONNECTION_QUALITY / NUMBER_OF_BARS); // -100 -> 4, -75 -> 3, -50 -> 2
-    let active_bars = NUMBER_OF_BARS - inactive_bars;
+    let active_bars = number_of_active_wifi_bars(signal_strength, NUMBER_OF_BARS);
 
     let mut output = String::new();
 

@@ -69,7 +69,6 @@ impl WiFiManager {
             _ => panic!("AP not configured"),
         };
 
-        // TODO_SD: Add test
         let mixed_config = Configuration::Mixed(
             ClientConfiguration {
                 ssid: sta_ssid
