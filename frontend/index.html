@@ -14,8 +14,14 @@
             --card-bg: #243247;
             --success: #00c896;
             --error: #ff4757;
+            --dark-gray: #333;
+            --light-gray: #444;
             --border-radius: 12px;
             --transition: all 0.3s ease;
+            --header-font-size: 2.5rem;
+            --large-font-size: 1.5rem;
+            --medium-font-size: 1.1rem;
+            --small-font-size: 0.9rem;
         }
 
         * {
@@ -46,7 +52,7 @@
         }
 
         h1 {
-            font-size: 2.5rem;
+            font-size: var(--header-font-size);
             margin-bottom: 10px;
             background: linear-gradient(90deg, #4a6cf7, #8a63d2);
             -webkit-background-clip: text;
@@ -55,41 +61,49 @@
 
         .subtitle {
             color: #a0b3d9;
-            font-size: 1.1rem;
+            font-size: var(--medium-font-size)
         }
 
-        .landing-card {
+        .card-headline {
+            font-size: var(--large-font-size);
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-headline i {
+            color: var(--primary);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #a0b3d9;
+            font-size: var(--small-font-size);
+        }
+
+        .slim-card {
             background: var(--card-bg);
             border-radius: var(--border-radius);
-            padding: 40px;
+            padding: 20px;
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
             transition: var(--transition);
             display: flex;
             flex-direction: column;
             max-width: 500px;
             margin: 0 auto;
-            text-align: center;
         }
 
-        .landing-card:hover {
+        .slim-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
         }
 
-        .landing-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            background: linear-gradient(90deg, #4a6cf7, #8a63d2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .landing-description {
-            color: #a0b3d9;
-            margin-bottom: 30px;
-            font-size: 1.1rem;
-        }
-
+        /* Landing specific*/
         .button-group {
             display: flex;
             flex-direction: column;
@@ -110,7 +124,7 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            font-size: 1.1rem;
+            font-size: var(--medium-font-size);
         }
 
         .landing-btn:hover {
@@ -119,25 +133,17 @@
         }
 
         .wifi-btn {
-            background: #333;
+            background: var(--dark-gray);
         }
 
         .wifi-btn:hover {
-            background: #555;
+            background: var(--light-gray);
         }
 
         .wifi-btn:disabled {
             opacity: 0.7;
             cursor: not-allowed;
             transform: none;
-        }
-
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 20px;
-            color: #a0b3d9;
-            font-size: 0.9rem;
         }
 
         .popup-overlay {
@@ -215,12 +221,14 @@
             color: var(--error);
         }
 
+        /* Landing specific*/
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
             }
 
-            .landing-card {
+            .slim-card {
                 padding: 30px 20px;
             }
         }
@@ -231,13 +239,13 @@
     <div class="container">
         <header>
             <h1>Color Control Panel</h1>
-            <p class="subtitle">Welcome</p>
+            <p class="subtitle">Connect to your WiFi first or directly choose a color.</p>
         </header>
 
-        <div class="landing-card">
-            <p class="landing-description">
-                Choose a color directly or connect to your WiFi first.
-            </p>
+        <div class="slim-card">
+            <div class="card-headline">
+                Welcome
+            </div>
 
             <div class="button-group">
                 <button class="landing-btn wifi-btn" id="wifiBtn">
