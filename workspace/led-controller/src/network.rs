@@ -1,6 +1,7 @@
-use esp_idf_hal::{peripheral, sys::EspError};
+use esp_idf_hal::{peripheral::Peripheral, sys::EspError};
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
+    hal::modem::Modem,
     ipv4::IpInfo,
     wifi::{
         AccessPointConfiguration, AccessPointInfo, AuthMethod, BlockingWifi, ClientConfiguration,
@@ -17,7 +18,7 @@ pub struct WiFiManager {
 
 impl WiFiManager {
     pub fn new(
-        modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
+        modem: impl Peripheral<P = Modem> + 'static,
         sysloop: EspSystemEventLoop,
     ) -> Result<Self, NetworkError> {
         let esp_wifi = EspWifi::new(modem, sysloop.clone(), None)?;
@@ -33,8 +34,12 @@ impl WiFiManager {
         let mut wifi = BlockingWifi::wrap(&mut *esp_wifi, self.sysloop.clone())?;
 
         let ap_config = AccessPointConfiguration {
-            ssid: ap_ssid.try_into().unwrap(),
-            password: "".try_into().unwrap(),
+            ssid: ap_ssid
+                .try_into()
+                .map_err(|_| NetworkError::HeaplessStringConvertion)?,
+            password: ""
+                .try_into()
+                .map_err(|_| NetworkError::HeaplessStringConvertion)?,
             channel: 1,
             auth_method: AuthMethod::None,
             ..Default::default()

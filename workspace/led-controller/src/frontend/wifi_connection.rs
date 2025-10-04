@@ -509,7 +509,7 @@ fn signal_strength(signal_strength: i8) -> String {
 fn wifi_item(ap_info: &AccessPointInfo) -> String {
     let signal_strength = signal_strength(ap_info.signal_strength);
     let ssid = ap_info.ssid.clone();
-    let is_protected = !ap_info.auth_method.is_none();
+    let is_protected = ap_info.auth_method.is_some();
 
     format!(
         r##"
