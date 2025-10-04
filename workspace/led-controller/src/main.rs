@@ -8,8 +8,7 @@ use crate::config::{AP_SSID, SLEEP_TIME_MS};
 use crate::http::Server;
 use crate::led::Led;
 use crate::network::WiFiManager;
-use esp_idf_hal::delay::Delay;
-use esp_idf_hal::peripherals::Peripherals;
+use esp_idf_hal::{delay::Delay, peripherals::Peripherals};
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use hardware_agnostic_utils::types::Color;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -46,8 +45,7 @@ fn main() {
     let mut led = Led::new(channel, led_pin).expect("Failed to init Neopixel driver");
 
     log::info!("... Start WiFi-AP");
-    let wifi = network::WiFiManager::new(peripherals.modem, system_event_loop)
-        .expect("Failed to create wifi struct");
+    let wifi = WiFiManager::new(peripherals.modem, system_event_loop).expect("Failed to init WiFi");
     let state = State::new(wifi);
     state
         .wifi
@@ -60,14 +58,15 @@ fn main() {
     log::info!("Init done - awaiting requests");
     let delay = Delay::default();
     loop {
-        while state.is_rainbow_mode.load(Ordering::SeqCst) {
+        if state.is_rainbow_mode.load(Ordering::SeqCst) {
             if let Err(err) = led.rainbow() {
                 log::error!("Failed to set rainbow color: {err}")
             }
-            delay.delay_ms(SLEEP_TIME_MS);
-        }
-        if let Err(err) = led.set_color(state.current_color.lock().unwrap().clone()) {
-            log::error!("Failed to set color: {err}")
+        } else {
+            #[warn(clippy::collapsible_else_if)]
+            if let Err(err) = led.set_color(*state.current_color.lock().unwrap()) {
+                log::error!("Failed to set color: {err}")
+            }
         }
         delay.delay_ms(SLEEP_TIME_MS);
     }

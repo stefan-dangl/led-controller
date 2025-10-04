@@ -2,7 +2,7 @@
 pub const SLEEP_TIME_MS: u32 = 100;
 
 // Network
-pub const AP_SSID: &str = "!!! MY SUPER COOL AP";
+pub const AP_SSID: &str = "Led Controller 000";
 
 // HTTP
 pub const INTENSITY_REDUCTION: u8 = 3;

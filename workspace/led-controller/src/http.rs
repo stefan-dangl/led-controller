@@ -7,7 +7,10 @@ use esp_idf_hal::{
     io::{EspIOError, Write},
     sys::EspError,
 };
-use esp_idf_svc::http::{server::EspHttpServer, Method};
+use esp_idf_svc::http::{
+    server::{Configuration, EspHttpConnection, EspHttpServer, Request},
+    Method,
+};
 use hardware_agnostic_utils::types::Color;
 use serde::{Deserialize, Serialize};
 use std::{str::Utf8Error, sync::atomic::Ordering};
@@ -32,7 +35,7 @@ pub struct Server(EspHttpServer<'static>);
 
 impl Server {
     pub fn new(state: State) -> Result<Self, EspIOError> {
-        let server = EspHttpServer::new(&esp_idf_svc::http::server::Configuration::default())?;
+        let server = EspHttpServer::new(&Configuration::default())?;
         let mut this = Self(server);
 
         this.get_index()?;
@@ -46,15 +49,12 @@ impl Server {
     }
 
     fn get_index(&mut self) -> Result<(), EspError> {
-        self.0.fn_handler(
-            "/",
-            Method::Get,
-            |request| -> core::result::Result<(), HttpError> {
+        self.0
+            .fn_handler("/", Method::Get, |request| -> Result<(), HttpError> {
                 let mut response = request.into_ok_response()?;
                 response.write_all(index::HTML.as_bytes())?;
                 Ok(())
-            },
-        )?;
+            })?;
         Ok(())
     }
 
@@ -62,7 +62,7 @@ impl Server {
         self.0.fn_handler(
             "/color_panel",
             Method::Get,
-            |request| -> core::result::Result<(), HttpError> {
+            |request| -> Result<(), HttpError> {
                 let mut response = request.into_ok_response()?;
                 response.write_all(color_panel::HTML.as_bytes())?;
                 Ok(())
@@ -75,7 +75,7 @@ impl Server {
         self.0.fn_handler(
             "/connection_page",
             Method::Get,
-            move |request| -> core::result::Result<(), HttpError> {
+            move |request| -> Result<(), HttpError> {
                 log::info!("Scan networks ...");
 
                 match state.wifi.scan() {
@@ -100,7 +100,7 @@ impl Server {
         self.0.fn_handler(
             "/connect_to_wifi",
             Method::Post,
-            move |mut request| -> core::result::Result<(), HttpError> {
+            move |mut request| -> Result<(), HttpError> {
                 let body = read_body(&mut request)?;
                 let connection_req: ConnectionRequest = serde_json::from_str(&body)?;
 
@@ -125,7 +125,7 @@ impl Server {
                         let error_message = if let Err(err) = others {
                             format!("Failed to connect to WiFi: {err}")
                         } else {
-                            format!("Failed to connect to WiFi")
+                            "Failed to connect to WiFi".to_owned()
                         };
                         log::error!("{error_message}");
                         let mut response = request.into_response(500, Some(&error_message), &[])?;
@@ -142,10 +142,10 @@ impl Server {
         self.0.fn_handler(
             "/set_color",
             Method::Post,
-            move |mut request| -> core::result::Result<(), HttpError> {
+            move |mut request| -> Result<(), HttpError> {
                 let body = read_body(&mut request)?;
                 let color_req: ColorRequest = serde_json::from_str(&body)?;
-                log::info!("New Color: {}", color_req.color);
+                log::info!("New color: {}", color_req.color);
 
                 state.is_rainbow_mode.store(false, Ordering::SeqCst);
                 match Color::try_from(color_req.color) {
@@ -171,7 +171,7 @@ impl Server {
         self.0.fn_handler(
             "/rainbow",
             Method::Post,
-            move |_| -> core::result::Result<(), EspIOError> {
+            move |_| -> Result<(), EspIOError> {
                 state.is_rainbow_mode.store(true, Ordering::SeqCst);
                 Ok(())
             },
@@ -180,11 +180,7 @@ impl Server {
     }
 }
 
-fn read_body(
-    request: &mut esp_idf_svc::http::server::Request<
-        &mut esp_idf_svc::http::server::EspHttpConnection<'_>,
-    >,
-) -> Result<String, HttpError> {
+fn read_body(request: &mut Request<&mut EspHttpConnection<'_>>) -> Result<String, HttpError> {
     const MAX_REQUEST_LENGTH: usize = 100;
     let mut buf = [0; MAX_REQUEST_LENGTH];
     let bytes_read = request.read(&mut buf)?;
