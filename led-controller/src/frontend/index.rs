@@ -1,96 +1,6 @@
-pub const HTML: &str = r##"
-<!DOCTYPE html>
-<html lang="en">
+use crate::frontend::COMMON_HEADER;
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Color Control Panel</title>
-    <style>
-        :root {
-            --primary: #4a6cf7;
-            --dark: #1d2a3a;
-            --darker: #131a25;
-            --light: #f5f8ff;
-            --card-bg: #243247;
-            --success: #00c896;
-            --error: #ff4757;
-            --border-radius: 12px;
-            --transition: all 0.3s ease;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
-            color: var(--light);
-            min-height: 100vh;
-            padding: 20px;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 20px 0;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, #4a6cf7, #8a63d2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .subtitle {
-            color: #a0b3d9;
-            font-size: 1.1rem;
-        }
-
-        .landing-card {
-            background: var(--card-bg);
-            border-radius: var(--border-radius);
-            padding: 40px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            max-width: 500px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .landing-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .landing-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            background: linear-gradient(90deg, #4a6cf7, #8a63d2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .landing-description {
-            color: #a0b3d9;
-            margin-bottom: 30px;
-            font-size: 1.1rem;
-        }
-
+const HTML: &str = r##"
         .button-group {
             display: flex;
             flex-direction: column;
@@ -111,7 +21,7 @@ pub const HTML: &str = r##"
             align-items: center;
             justify-content: center;
             gap: 10px;
-            font-size: 1.1rem;
+            font-size: var(--medium-font-size);
         }
 
         .landing-btn:hover {
@@ -120,25 +30,17 @@ pub const HTML: &str = r##"
         }
 
         .wifi-btn {
-            background: #333;
+            background: var(--dark-gray);
         }
 
         .wifi-btn:hover {
-            background: #555;
+            background: var(--light-gray);
         }
 
         .wifi-btn:disabled {
             opacity: 0.7;
             cursor: not-allowed;
             transform: none;
-        }
-
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 20px;
-            color: #a0b3d9;
-            font-size: 0.9rem;
         }
 
         .popup-overlay {
@@ -216,12 +118,14 @@ pub const HTML: &str = r##"
             color: var(--error);
         }
 
+        /* Landing specific*/
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
             }
 
-            .landing-card {
+            .slim-card {
                 padding: 30px 20px;
             }
         }
@@ -232,13 +136,13 @@ pub const HTML: &str = r##"
     <div class="container">
         <header>
             <h1>Color Control Panel</h1>
-            <p class="subtitle">Welcome</p>
+            <p class="subtitle">Connect to your WiFi first or directly choose a color.</p>
         </header>
 
-        <div class="landing-card">
-            <p class="landing-description">
-                Choose a color directly or connect to your WiFi first.
-            </p>
+        <div class="slim-card">
+            <div class="card-headline">
+                Welcome
+            </div>
 
             <div class="button-group">
                 <button class="landing-btn wifi-btn" id="wifiBtn">
@@ -335,3 +239,7 @@ pub const HTML: &str = r##"
 
 </html>
 "##;
+
+pub fn index() -> String {
+    format!("{COMMON_HEADER}{HTML}")
+}

@@ -1,104 +1,8 @@
-pub const HTML: &str = r##"
-<!DOCTYPE html>
-<html lang="en">
+use crate::frontend::COMMON_HEADER;
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Color Control</title>
-    <style>
-        :root {
-            --primary: #4a6cf7;
-            --dark: #1d2a3a;
-            --darker: #131a25;
-            --light: #f5f8ff;
-            --card-bg: #243247;
-            --success: #00c896;
-            --error: #ff4757;
-            --border-radius: 12px;
-            --transition: all 0.3s ease;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
-            color: var(--light);
-            min-height: 100vh;
-            padding: 20px;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 20px 0;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, #4a6cf7, #8a63d2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .subtitle {
-            color: #a0b3d9;
-            font-size: 1.1rem;
-        }
-
-        .device-card {
-            background: var(--card-bg);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .device-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .device-name {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .device-name i {
-            color: var(--primary);
-        }
-
+const HTML: &str = r##"
         .color-section {
             margin-bottom: 20px;
-        }
-
-        .color-label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            color: #a0b3d9;
         }
 
         .color-input-group {
@@ -139,12 +43,14 @@ pub const HTML: &str = r##"
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: var(--medium-font-size);
         }
 
         .set-color-btn:hover {
             background: #5b7aff;
             transform: translateY(-2px);
         }
+
 
         .effect-buttons {
             display: flex;
@@ -166,26 +72,26 @@ pub const HTML: &str = r##"
             height: 80px;
             width: 60px;
             padding: 0;
-            font-size: 0.8rem;
+            font-size: var(--medium-font-size);
             text-align: center;
             line-height: 1.2;
         }
 
         .rainbow-btn {
-            background: #333;
+            background: var(--dark-gray);
         }
 
         .rainbow-btn:hover {
-            background: #555;
+            background: var(--light-gray);
             transform: translateY(-2px);
         }
 
         .off-btn {
-            background: #333;
+            background: var(--dark-gray);
         }
 
         .off-btn:hover {
-            background: #555;
+            background: var(--light-gray);
             transform: translateY(-2px);
         }
 
@@ -201,41 +107,7 @@ pub const HTML: &str = r##"
             background-color: var(--success);
         }
 
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 20px;
-            color: #a0b3d9;
-            font-size: 0.9rem;
-        }
-
-        .back-btn-container {
-            display: flex;
-            justify-content: center;
-            margin: 30px auto;
-            max-width: 400px;
-        }
-
-        .back-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 20px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: calc(50% - 5px);
-        }
-
-        .back-btn:hover {
-            background: #5b7aff;
-            transform: translateY(-2px);
-        }
+        /* ... Color Panel specific */
 
         @media (max-width: 768px) {
             h1 {
@@ -252,14 +124,13 @@ pub const HTML: &str = r##"
             <p class="subtitle">Please choose a color</p>
         </header>
 
-        <div id="device" class="device-card">
-            <div class="device-name">
+        <div id="device" class="slim-card">
+            <div class="card-headline">
                 Device
                 <span class="status-indicator status-connected"></span>
             </div>
 
             <div class="color-section">
-                <span class="color-label">Set Color</span>
                 <div class="color-input-group">
                     <input type="color" class="color-input" value="#00a0a0">
                     <button class="set-color-btn">
@@ -395,3 +266,7 @@ pub const HTML: &str = r##"
 
 </html>
 "##;
+
+pub fn color_panel() -> String {
+    format!("{COMMON_HEADER}{HTML}")
+}

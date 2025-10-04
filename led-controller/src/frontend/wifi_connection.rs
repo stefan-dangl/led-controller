@@ -1,100 +1,11 @@
 use esp_idf_svc::wifi::AccessPointInfo;
 use hardware_agnostic_utils::utils::number_of_active_wifi_bars;
 
+use crate::frontend::COMMON_HEADER;
+
 // TODO_SD: May reuse css part from frontend
 
 const HTML_1: &str = r##"
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Color Control Panel</title>
-    <style>
-        :root {
-            --primary: #4a6cf7;
-            --dark: #1d2a3a;
-            --darker: #131a25;
-            --light: #f5f8ff;
-            --card-bg: #243247;
-            --success: #00c896;
-            --error: #ff4757;
-            --border-radius: 12px;
-            --transition: all 0.3s ease;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
-            color: var(--light);
-            min-height: 100vh;
-            padding: 20px;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 20px 0;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, #4a6cf7, #8a63d2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .subtitle {
-            color: #a0b3d9;
-            font-size: 1.1rem;
-        }
-
-        .wifi-card {
-            background: var(--card-bg);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .wifi-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .wifi-name {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .wifi-name i {
-            color: var(--primary);
-        }
-
         .wifi-list {
             margin-bottom: 20px;
         }
@@ -109,6 +20,7 @@ const HTML_1: &str = r##"
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: var(--medium-font-size);
         }
 
         .wifi-item:hover {
@@ -219,42 +131,6 @@ const HTML_1: &str = r##"
             background-color: var(--success);
         }
 
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 20px;
-            color: #a0b3d9;
-            font-size: 0.9rem;
-        }
-
-        .back-btn-container {
-            display: flex;
-            justify-content: center;
-            margin: 30px auto;
-            max-width: 500px;
-        }
-
-        .back-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 20px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: calc(50% - 5px);
-        }
-
-        .back-btn:hover {
-            background: #5b7aff;
-            transform: translateY(-2px);
-        }
-
         .success-ip-message {
             margin-top: 15px;
             padding: 10px;
@@ -295,8 +171,8 @@ const HTML_1: &str = r##"
             <p class="subtitle">Connect to your WiFi</p>
         </header>
 
-        <div class="wifi-card">
-            <div class="wifi-name">
+        <div class="slim-card">
+            <div class="card-headline">
                 Available Networks
             </div>
 
@@ -524,7 +400,7 @@ fn wifi_item(ap_info: &AccessPointInfo) -> String {
 }
 
 pub fn connection_page(ap_infos: &[AccessPointInfo]) -> String {
-    let mut page = HTML_1.to_owned();
+    let mut page = format!("{COMMON_HEADER}{HTML_1}");
 
     for ap_info in ap_infos {
         let wifi_item = &wifi_item(ap_info);

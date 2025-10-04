@@ -1,6 +1,6 @@
 use crate::{
     config::INTENSITY_REDUCTION,
-    frontend::{color_panel, index, wifi_connection::connection_page},
+    frontend::{color_panel::color_panel, index::index, wifi_connection::connection_page},
     State,
 };
 use esp_idf_hal::{
@@ -52,7 +52,7 @@ impl Server {
         self.0
             .fn_handler("/", Method::Get, |request| -> Result<(), HttpError> {
                 let mut response = request.into_ok_response()?;
-                response.write_all(index::HTML.as_bytes())?;
+                response.write_all(index().as_bytes())?;
                 Ok(())
             })?;
         Ok(())
@@ -64,7 +64,7 @@ impl Server {
             Method::Get,
             |request| -> Result<(), HttpError> {
                 let mut response = request.into_ok_response()?;
-                response.write_all(color_panel::HTML.as_bytes())?;
+                response.write_all(color_panel().as_bytes())?;
                 Ok(())
             },
         )?;
