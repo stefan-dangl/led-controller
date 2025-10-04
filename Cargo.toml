@@ -7,3 +7,4 @@ members = [
 
 [workspace.dependencies]
 hardware-agnostic-utils = { path = "hardware-agnostic-utils" }
+led-controller = { path = "led-controller" }
