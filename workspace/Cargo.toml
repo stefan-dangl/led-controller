@@ -1,9 +1,0 @@
-[workspace]
-resolver = "2"
-members = [
-  "led-controller",
-  "hardware-agnostic-utils",
-]
-
-[workspace.dependencies]
-hardware-agnostic-utils = { path = "hardware-agnostic-utils" }
