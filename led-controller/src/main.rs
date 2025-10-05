@@ -40,7 +40,7 @@ fn main() {
     let system_event_loop = EspSystemEventLoop::take().expect("Failed to access System Event Loop");
 
     log::info!("... Init Neopixel driver");
-    let led_pin = peripherals.pins.gpio2;
+    let led_pin = peripherals.pins.gpio6;
     let channel = peripherals.rmt.channel0;
     let mut led = Led::new(channel, led_pin).expect("Failed to init Neopixel driver");
 
