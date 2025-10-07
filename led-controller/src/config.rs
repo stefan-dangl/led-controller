@@ -1,17 +1,17 @@
 // System
-pub const SLEEP_TIME_MS: u32 = 100;
+pub const SLEEP_TIME_MS: u32 = 33;
 
 // Network
 pub const AP_SSID: &str = "Led Controller 000";
 
 // HTTP
-pub const INTENSITY_REDUCTION: u8 = 3;
+pub const INTENSITY_REDUCTION: u8 = 2;
 
 // LED
 pub const MAX_LED_STRIP_LENGTH: usize = 100;
-pub const RAINBOW_STEP: u8 = 5;
+pub const RAINBOW_INTENSITY: u8 = 32;
+pub const RAINBOW_STEP: u8 = 2;
 pub const RAINBOW_SATURATION: u8 = 255;
-pub const RAINBOW_INTENSITY: u8 = 8;
 
 // Version
 pub const VERSION: &str = "v1.0.0";
