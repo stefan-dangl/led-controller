@@ -12,3 +12,7 @@ pub const MAX_LED_STRIP_LENGTH: usize = 100;
 pub const RAINBOW_STEP: u8 = 5;
 pub const RAINBOW_SATURATION: u8 = 255;
 pub const RAINBOW_INTENSITY: u8 = 8;
+
+// Version
+pub const VERSION: &str = "v1.0.0";
+pub const GIT_LINK: &str = "https://github.com/stefan-dangl/led-controller";

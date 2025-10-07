@@ -1,6 +1,6 @@
-use crate::frontend::COMMON_HEADER;
+use crate::{config::GIT_LINK, config::VERSION, frontend::COMMON_HEADER};
 
-const HTML: &str = r##"
+const HTML_1: &str = r##"
         .button-group {
             display: flex;
             flex-direction: column;
@@ -165,6 +165,9 @@ const HTML: &str = r##"
     </div>
 
     <footer>
+"##;
+
+const HTML_2: &str = r##"
         <p>Stefan Dangl © 2025</p>
     </footer>
 
@@ -241,5 +244,12 @@ const HTML: &str = r##"
 "##;
 
 pub fn index() -> String {
-    format!("{COMMON_HEADER}{HTML}")
+    let version_and_git = format!(
+        r##"
+    <p class="subtitle">{VERSION} visit <a href="{GIT_LINK}" target="_blank"
+            style="color: rgb(160, 179, 217);">Git for updates</a></p>
+            "##
+    );
+
+    format!("{COMMON_HEADER}{HTML_1}{version_and_git}{HTML_2}")
 }
