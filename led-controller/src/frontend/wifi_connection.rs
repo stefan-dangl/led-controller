@@ -189,7 +189,7 @@ const HTML_2: &str = r##"
             <div class="status-message" id="statusMessage"></div>
 
             <div class="success-ip-message" id="successIpMessage">
-                Please continue at <span class="ip-address" id="ipAddress"></span>
+                You can reach the controller at <span class="ip-address" id="ipAddress"> from within your network</span>
             </div>
         </div>
 
