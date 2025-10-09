@@ -34,8 +34,12 @@ impl WiFiManager {
         let mut wifi = BlockingWifi::wrap(&mut *esp_wifi, self.sysloop.clone())?;
 
         let ap_config = AccessPointConfiguration {
-            ssid: ap_ssid.try_into().unwrap_or_default(),
-            password: "".try_into().unwrap_or_default(),
+            ssid: ap_ssid
+                .try_into()
+                .map_err(|_| NetworkError::HeaplessStringConvertion)?,
+            password: ""
+                .try_into()
+                .map_err(|_| NetworkError::HeaplessStringConvertion)?,
             channel: 1,
             auth_method: AuthMethod::None,
             ..Default::default()
