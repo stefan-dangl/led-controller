@@ -22,17 +22,9 @@ The code should work with similar hardware as well, requiering more or less adap
 2) Execute the following commands in the project's root directory for building the project and flashing it on the connected ESP32-S3. Hint: If flashing doesn't work, you may have to modify the permissions of the device descriptor.
 
 ``` Bash
+cd led-controller
 cargo build --release
 espflash flash target/xtensa-esp32s3-espidf/debug/led-controller --monitor
-```
-
-## How to run tests
-
-By default, cargo builds the project for the ESP-S3 hardware, which is not natively executable on x86. Accordingly, you have to specify your development platform. For example, on Linux:
-
-``` Bash
-cd hardware-agnostic-utils
-cargo test --target x86_64-unknown-linux-gnu
 ```
 
 

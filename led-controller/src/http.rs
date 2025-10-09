@@ -1,3 +1,4 @@
+use crate::types::Color;
 use crate::{
     config::INTENSITY_REDUCTION,
     frontend::{color_panel::color_panel, index::index, wifi_connection::connection_page},
@@ -11,7 +12,6 @@ use esp_idf_svc::http::{
     server::{Configuration, EspHttpConnection, EspHttpServer, Request},
     Method,
 };
-use hardware_agnostic_utils::types::Color;
 use serde::{Deserialize, Serialize};
 use std::{str::Utf8Error, sync::atomic::Ordering};
 

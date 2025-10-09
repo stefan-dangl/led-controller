@@ -32,7 +32,6 @@ serde_json = "1.0"
 smart-leds = "0.4"
 ws2812-esp32-rmt-driver = { version = "0.12", features = ["smart-leds-trait"] }
 thiserror = "2.0"
-hardware-agnostic-utils.workspace = true
 
 [build-dependencies]
 embuild = "0.33"

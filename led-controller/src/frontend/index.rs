@@ -246,8 +246,8 @@ const HTML_2: &str = r##"
 pub fn index() -> String {
     let version_and_git = format!(
         r##"
-    <p class="subtitle">{VERSION} visit <a href="{GIT_LINK}" target="_blank"
-            style="color: rgb(160, 179, 217);">Git for updates</a></p>
+    <p class="subtitle">{VERSION} <a href="{GIT_LINK}" target="_blank"
+            style="color: rgb(160, 179, 217);">visit Git for updates</a></p>
             "##
     );
 

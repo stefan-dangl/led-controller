@@ -1,6 +1,6 @@
 use crate::config::{MAX_LED_STRIP_LENGTH, RAINBOW_INTENSITY, RAINBOW_SATURATION, RAINBOW_STEP};
+use crate::types::Color;
 use esp_idf_hal::{gpio::OutputPin, peripheral::Peripheral, rmt::RmtChannel, sys::esp_random};
-use hardware_agnostic_utils::types::Color;
 use smart_leds::hsv::{hsv2rgb, Hsv};
 use ws2812_esp32_rmt_driver::{Ws2812Esp32Rmt, Ws2812Esp32RmtDriverError};
 

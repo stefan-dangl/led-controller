@@ -1,9 +1,5 @@
-use esp_idf_svc::wifi::AccessPointInfo;
-use hardware_agnostic_utils::utils::number_of_active_wifi_bars;
-
 use crate::frontend::COMMON_HEADER;
-
-// TODO_SD: May reuse css part from frontend
+use esp_idf_svc::wifi::AccessPointInfo;
 
 const HTML_1: &str = r##"
         .wifi-list {
@@ -366,6 +362,11 @@ const ACTIVE_BAR: &str = r##"
 const INACTIVE_BAR: &str = r##"
 <div class="signal-bar"></div>
 "##;
+
+pub fn number_of_active_wifi_bars(signal_strength: i8, number_of_bars: i8) -> i8 {
+    let inactive_bars = signal_strength / (i8::MIN / number_of_bars);
+    number_of_bars - inactive_bars
+}
 
 fn signal_strength(signal_strength: i8) -> String {
     let active_bars = number_of_active_wifi_bars(signal_strength, NUMBER_OF_BARS);

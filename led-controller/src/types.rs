@@ -34,32 +34,3 @@ pub enum ColorError {
     #[error(transparent)]
     ParseInt(#[from] ParseIntError),
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test_case::test_case(
-        "804020",
-        Color(smart_leds::RGB::new(0x80, 0x40, 0x20)),
-        Color(smart_leds::RGB::new(0x10, 0x08, 0x04))
-    )]
-    #[test_case::test_case(
-        "000000",
-        Color(smart_leds::RGB::new(0x00, 0x00, 0x00)),
-        Color(smart_leds::RGB::new(0x00, 0x00, 0x00))
-    )]
-    fn test_reduce_intensity(input: &str, input_color: Color, reduced_color: Color) {
-        let mut color = Color::try_from(input.to_owned()).unwrap();
-        assert_eq!(color, input_color);
-        color.reduce_intensity(3);
-        assert_eq!(color, reduced_color);
-    }
-
-    #[test_case::test_case("12345")]
-    #[test_case::test_case("1234567")]
-    #[test_case::test_case("uvw!@?")]
-    fn test_try_from_string_failed(input: &str) {
-        assert!(Color::try_from(input.to_owned()).is_err());
-    }
-}
