@@ -267,7 +267,7 @@ const HTML_2: &str = r##"
                     requestData.password = password;
                 }
 
-                showStatus('Connecting to ' + ssid + '...', 'connecting');
+                showStatus('Connecting to ' + ssid + '... Continue from within your network in case the connection is not failing.', 'connecting');
 
                 fetch('/connect_to_wifi', {
                     method: 'POST',

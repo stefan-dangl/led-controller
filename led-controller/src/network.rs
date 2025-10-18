@@ -75,25 +75,15 @@ impl WiFiManager {
         let mut esp_wifi = self.wifi.lock().unwrap();
         let mut wifi = BlockingWifi::wrap(&mut *esp_wifi, self.sysloop.clone())?;
 
-        let current_config = wifi.get_configuration()?;
-        let ap_config = match current_config {
-            Configuration::AccessPoint(ap) => ap,
-            Configuration::Mixed(_, ap) => ap,
-            _ => panic!("AP not configured"),
-        };
-
-        let mixed_config = Configuration::Mixed(
-            ClientConfiguration {
-                ssid: sta_ssid
-                    .try_into()
-                    .map_err(|_| NetworkError::HeaplessStringConvertion)?,
-                password: sta_pass
-                    .try_into()
-                    .map_err(|_| NetworkError::HeaplessStringConvertion)?,
-                ..Default::default()
-            },
-            ap_config,
-        );
+        let mixed_config = Configuration::Client(ClientConfiguration {
+            ssid: sta_ssid
+                .try_into()
+                .map_err(|_| NetworkError::HeaplessStringConvertion)?,
+            password: sta_pass
+                .try_into()
+                .map_err(|_| NetworkError::HeaplessStringConvertion)?,
+            ..Default::default()
+        });
 
         wifi.set_configuration(&mixed_config)?;
         wifi.connect()?;

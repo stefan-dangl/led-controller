@@ -46,7 +46,7 @@ Once the ESP32 is flashed, you can use it as follows:
   <figcaption>Figure 3: Welcome Page, shown when entering led-controller-000.local in your browser.</figcaption>
 </figure>
 
-3) When clicking on *Connect to WiFi*, the ESP will take a moment to scan the available WiFi networks and list them. To connect, choose a WiFi from the list. If successful, you can access the ESP from within your WiFi network now.
+3) When clicking on *Connect to WiFi*, the ESP will take a moment to scan the available WiFi networks and list them. To connect, choose a WiFi from the list. If successful, you can access the ESP from within your WiFi network now. This closes the ESP AP. In case you want to open the ESP AP again, reboot the device by simply replugging the power cable.
 
 <figure id="fig1-schematics">
   <img src="docs/images/connect_to_wifi.jpg" alt="Connect to WiFi" width="200">
