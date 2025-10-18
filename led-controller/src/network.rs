@@ -1,8 +1,10 @@
+use crate::config::HOSTNAME;
 use esp_idf_hal::{peripheral::Peripheral, sys::EspError};
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::modem::Modem,
     ipv4::IpInfo,
+    mdns::EspMdns,
     wifi::{
         AccessPointConfiguration, AccessPointInfo, AuthMethod, BlockingWifi, ClientConfiguration,
         Configuration, EspWifi,
@@ -14,6 +16,7 @@ use std::sync::{Arc, Mutex};
 pub struct WiFiManager {
     wifi: Arc<Mutex<EspWifi<'static>>>,
     sysloop: EspSystemEventLoop,
+    _mdns: Arc<EspMdns>,
 }
 
 impl WiFiManager {
@@ -23,9 +26,14 @@ impl WiFiManager {
     ) -> Result<Self, NetworkError> {
         let esp_wifi = EspWifi::new(modem, sysloop.clone(), None)?;
 
+        let mut mdns = EspMdns::take()?;
+        mdns.set_hostname(HOSTNAME)?;
+        mdns.add_service(Some("Web Server"), "_http", "tcp", 80, &[("path", "/")])?;
+
         Ok(Self {
             wifi: Arc::new(Mutex::new(esp_wifi)),
             sysloop,
+            _mdns: Arc::new(mdns),
         })
     }
 

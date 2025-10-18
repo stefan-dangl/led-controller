@@ -6,6 +6,7 @@ pub const RAINBOW_SLEEP_TIME_MS: u32 = 12;
 
 // Network
 pub const AP_SSID: &str = "Led Controller 000";
+pub const HOSTNAME: &str = "led-controller-000";
 
 // HTTP
 pub const INTENSITY_REDUCTION: u8 = 3;
