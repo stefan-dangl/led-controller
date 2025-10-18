@@ -5,7 +5,7 @@ mod led;
 mod network;
 mod types;
 
-use crate::config::{AP_SSID, SLEEP_TIME_MS};
+use crate::config::{AP_SSID, DEFAULT_COLOR, IDLE_SLEEP_TIME_MS, RAINBOW_SLEEP_TIME_MS};
 use crate::http::Server;
 use crate::led::Led;
 use crate::network::WiFiManager;
@@ -25,7 +25,7 @@ pub struct State {
 impl State {
     fn new(wifi: WiFiManager) -> Self {
         Self {
-            current_color: Arc::new(Mutex::new(Color::default())),
+            current_color: Arc::new(Mutex::new(DEFAULT_COLOR)),
             is_rainbow_mode: Arc::new(AtomicBool::default()),
             wifi,
         }
@@ -63,12 +63,13 @@ fn main() {
             if let Err(err) = led.rainbow() {
                 log::error!("Failed to set rainbow color: {err}")
             }
+            delay.delay_ms(RAINBOW_SLEEP_TIME_MS);
         } else {
             #[warn(clippy::collapsible_else_if)]
             if let Err(err) = led.set_color(*state.current_color.lock().unwrap()) {
                 log::error!("Failed to set color: {err}")
             }
+            delay.delay_ms(IDLE_SLEEP_TIME_MS);
         }
-        delay.delay_ms(SLEEP_TIME_MS);
     }
 }
