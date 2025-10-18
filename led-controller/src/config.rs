@@ -1,8 +1,7 @@
 use crate::types::Color;
 
 // System
-pub const IDLE_SLEEP_TIME_MS: u32 = 50;
-pub const RAINBOW_SLEEP_TIME_MS: u32 = 12;
+pub const SLEEP_TIME_MS: u32 = 12;
 
 // Network
 pub const AP_SSID: &str = "Led Controller 000";
