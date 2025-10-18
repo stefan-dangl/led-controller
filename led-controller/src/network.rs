@@ -17,7 +17,6 @@ pub struct WiFiManager {
     wifi: Arc<Mutex<EspWifi<'static>>>,
     sysloop: EspSystemEventLoop,
     _mdns: Arc<EspMdns>,
-    // sta_config: Arc<Mutex<Option<ClientConfiguration>>>,
 }
 
 impl WiFiManager {
@@ -35,7 +34,6 @@ impl WiFiManager {
             wifi: Arc::new(Mutex::new(esp_wifi)),
             sysloop,
             _mdns: Arc::new(mdns),
-            // sta_config: Arc::default(),
         })
     }
 
@@ -77,7 +75,41 @@ impl WiFiManager {
         let mut esp_wifi = self.wifi.lock().unwrap();
         let mut wifi = BlockingWifi::wrap(&mut *esp_wifi, self.sysloop.clone())?;
 
-        let sta_config = Configuration::Client(ClientConfiguration {
+        let current_config = wifi.get_configuration()?;
+        let ap_config = match current_config {
+            Configuration::AccessPoint(ap) => ap,
+            Configuration::Mixed(_, ap) => ap,
+            _ => panic!("AP not configured"),
+        };
+
+        let mixed_config = Configuration::Mixed(
+            ClientConfiguration {
+                ssid: sta_ssid
+                    .try_into()
+                    .map_err(|_| NetworkError::HeaplessStringConvertion)?,
+                password: sta_pass
+                    .try_into()
+                    .map_err(|_| NetworkError::HeaplessStringConvertion)?,
+                ..Default::default()
+            },
+            ap_config,
+        );
+
+        wifi.set_configuration(&mixed_config)?;
+        let result = Self::connect(&mut wifi);
+
+        if result.is_ok() {
+            Self::close_ap(&mut wifi, sta_ssid, sta_pass).expect("Failed to close AP");
+        }
+        result
+    }
+
+    fn close_ap(
+        wifi: &mut BlockingWifi<&mut EspWifi<'static>>,
+        sta_ssid: &str,
+        sta_pass: &str,
+    ) -> Result<(), NetworkError> {
+        let client_config = Configuration::Client(ClientConfiguration {
             ssid: sta_ssid
                 .try_into()
                 .map_err(|_| NetworkError::HeaplessStringConvertion)?,
@@ -86,14 +118,13 @@ impl WiFiManager {
                 .map_err(|_| NetworkError::HeaplessStringConvertion)?,
             ..Default::default()
         });
-
-        wifi.set_configuration(&sta_config)?;
-        Self::connect(wifi)
+        wifi.set_configuration(&client_config)
+            .map_err(NetworkError::Esp)
     }
 
     pub fn check_wifi_connection(&self) -> Result<Option<IpInfo>, NetworkError> {
         let mut esp_wifi = self.wifi.lock().unwrap();
-        let wifi = BlockingWifi::wrap(&mut *esp_wifi, self.sysloop.clone())?;
+        let mut wifi = BlockingWifi::wrap(&mut *esp_wifi, self.sysloop.clone())?;
 
         if !matches!(wifi.get_configuration()?, Configuration::Client(_)) {
             return Ok(None);
@@ -101,14 +132,14 @@ impl WiFiManager {
 
         if !wifi.is_connected()? {
             log::warn!("Wifi configured but not connected. Try to reconnect");
-            Self::connect(wifi)
+            Self::connect(&mut wifi)
         } else {
             Ok(None)
         }
     }
 
     fn connect(
-        mut wifi: BlockingWifi<&mut EspWifi<'static>>,
+        wifi: &mut BlockingWifi<&mut EspWifi<'static>>,
     ) -> Result<Option<IpInfo>, NetworkError> {
         wifi.connect()?;
 
