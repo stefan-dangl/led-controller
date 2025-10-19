@@ -1,3 +1,4 @@
+use crate::config::WIFI_CONNECT_COLOR;
 use crate::types::Color;
 use crate::{
     config::INTENSITY_REDUCTION,
@@ -117,6 +118,7 @@ impl Server {
                         let response_data = ConnectionResponse {
                             ip_address: sta_ip.ip.to_string(),
                         };
+                        *state.current_color.lock().unwrap() = WIFI_CONNECT_COLOR;
                         let mut response = request.into_ok_response()?;
                         let json_bytes = serde_json::to_vec(&response_data)?;
                         response.write_all(&json_bytes)?;

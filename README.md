@@ -39,7 +39,7 @@ espflash flash target/riscv32imc-esp-espidf/debug/led-controller-c3  --monitor  
 
 Once the ESP32 is flashed, you can use it as follows:
 
-1) When powered on, the ESP creates a WiFi access point with an SSID like *LED Controller 000* (configurable). Make sure to connect the antenna to your ESP device.
+1) When powered on, the ESP creates a WiFi access point with an SSID like *LED Controller 000* (configurable). Make sure to connect the antenna to your ESP device. At this point the LEDs light yellow.
 
 <figure id="fig1-schematics">
   <img src="docs/images/ESP-AP.png" alt="LED Controller AP" width="400">
@@ -53,7 +53,7 @@ Once the ESP32 is flashed, you can use it as follows:
   <figcaption>Figure 3: Welcome Page, shown when entering led-controller-000.local in your browser.</figcaption>
 </figure>
 
-3) When you click "Connect to WiFi", the ESP will scan for available networks and display them. Select your WiFi network from the list to connect. Once successfully connected, you can access the ESP from within your WiFi network. Note that this will disable the ESP's access point mode. If you need to re-enable the access point, simply reboot the device by unplugging and replugging the power cable or pressing the reset button in case of ESP32-C3. If your WiFi network temporarily goes down after setup, the ESP will automatically reconnect once your WiFi is available again.
+3) When you click "Connect to WiFi", the ESP will scan for available networks and display them. Select your WiFi network from the list to connect. Once successfully connected the LEDs switch to cyan. You can access the ESP from within your WiFi network now. Note that this will disable the ESP's access point mode. If you need to re-enable the access point, simply reboot the device by unplugging and replugging the power cable or pressing the reset button in case of ESP32-C3. If your WiFi network temporarily goes down after setup, the ESP will automatically reconnect once your WiFi is available again.
 
 <figure id="fig1-schematics">
   <img src="docs/images/connect_to_wifi.jpg" alt="Connect to WiFi" width="200">
