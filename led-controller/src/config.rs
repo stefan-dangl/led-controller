@@ -16,7 +16,7 @@ pub const RAINBOW_STEP: u8 = 1;
 pub const RAINBOW_SATURATION: u8 = 255;
 pub const RAINBOW_INTENSITY: u8 = 8;
 pub const DEFAULT_COLOR: Color = Color(smart_leds::RGB::new(10, 6, 0));
-pub const WIFI_CONNECT_COLOR: Color = Color(smart_leds::RGB::new(0, 10, 6));
+pub const WIFI_CONNECT_COLOR: Color = Color(smart_leds::RGB::new(0, 8, 4));
 
 // Version
 pub const VERSION: &str = "v1.0.0";
