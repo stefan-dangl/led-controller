@@ -187,10 +187,6 @@ const HTML_2: &str = r##"
             </div>
 
             <div class="status-message" id="statusMessage"></div>
-
-            <div class="success-ip-message" id="successIpMessage">
-                You can reach the controller at <span class="ip-address" id="ipAddress"> from within your network</span>
-            </div>
         </div>
 
         <div class="back-btn-container">
@@ -212,7 +208,6 @@ const HTML_2: &str = r##"
             let passwordInput = document.getElementById('passwordInput');
             let connectBtn = document.getElementById('connectBtn');
             let statusMessage = document.getElementById('statusMessage');
-            let successIpMessage = document.getElementById('successIpMessage');
             let ipAddress = document.getElementById('ipAddress');
             let backBtn = document.getElementById('backBtn');
 
@@ -235,7 +230,6 @@ const HTML_2: &str = r##"
                         passwordInput.value = '';
                         passwordInput.focus();
                         statusMessage.className = 'status-message';
-                        successIpMessage.classList.remove('active');
                     } else {
                         passwordSection.classList.remove('active');
                         connectToWifi(selectedWifi.ssid);
@@ -273,7 +267,7 @@ const HTML_2: &str = r##"
                     requestData.password = password;
                 }
 
-                showStatus('Connecting to ' + ssid + '...', 'connecting');
+                showStatus('Connecting to ' + ssid + '... Continue from within your network in case no error occurs.', 'connecting');
 
                 fetch('/connect_to_wifi', {
                     method: 'POST',
@@ -297,10 +291,6 @@ const HTML_2: &str = r##"
                     .then(data => {
                         showStatus('Successfully connected to ' + ssid, 'success');
 
-                        if (data.ip_address) {
-                            showSuccessIpMessage(data.ip_address);
-                        }
-
                         setTimeout(() => {
                             wifiItems.forEach(i => i.classList.remove('selected'));
                             passwordSection.classList.remove('active');
@@ -317,15 +307,6 @@ const HTML_2: &str = r##"
             function showStatus(message, type) {
                 statusMessage.textContent = message;
                 statusMessage.className = 'status-message ' + type;
-            }
-
-            function showSuccessIpMessage(ip) {
-                ipAddress.textContent = ip;
-                successIpMessage.classList.add('active');
-
-                ipAddress.onclick = function () {
-                    window.location.href = 'http://' + ip;
-                };
             }
 
             backBtn.addEventListener('click', () => {
